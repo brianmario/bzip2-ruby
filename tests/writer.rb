@@ -2,7 +2,7 @@
 
 # This is the test from rubicon
 
-$LOAD_PATH.unshift *%w{.. tests}
+$LOAD_PATH.unshift(*%w{.. tests})
 require 'bz2'
 require 'runit_'
 

@@ -41,7 +41,7 @@ bz2 is an extension to use libbzip2 from ruby
 --- allocate
     allocate a new ((|BZ2::Writer|))
 
---- new(object, mode = "w", blocks = 9, work = 0)
+--- new(object = nil, mode = "w", blocks = 9, work = 0)
     Create a new ((|BZ2::Writer|)) associated with ((|object|)).
 
     ((|object|)) must respond to ((|write|)), or must be ((|nil|))
@@ -67,6 +67,7 @@ bz2 is an extension to use libbzip2 from ruby
 --- close!
     Terminate the compression and close the associated object
 
+--- finish
 --- flush
     Flush the data and terminate the compression, the object can be re-used
     to store another compressed string

@@ -32,3 +32,9 @@
  * added close!
  * replaced close(false) by #finish
  * corrected #flush
+
+--- 0.1.6
+
+ * adapted for 1.8.0 (ihi)
+ * modified ::new
+ * BZ2::Writer#finish (same than #flush)

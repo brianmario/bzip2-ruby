@@ -1,4 +1,12 @@
 require 'mkmf'
+
+$stat_lib = if CONFIG.key?("LIBRUBYARG_STATIC")
+	       $LDFLAGS += " -L#{CONFIG['libdir']}"
+	       CONFIG["LIBRUBYARG_STATIC"]
+	    else
+	       "-lruby"
+	    end
+
 if prefix = with_config("bz2-prefix")
    $CFLAGS += " -I#{prefix}/include"
    $LDFLAGS += " -L#{prefix}/lib"
@@ -16,6 +24,10 @@ if !have_library('bz2', 'BZ2_bzWriteOpen')
    raise "libz2 not found"
 end
 
+if enable_config("shared", true)
+   $static = nil
+end
+
 create_makefile('bz2')
 
 begin
@@ -24,7 +36,7 @@ begin
 
 unknown: $(DLLIB)
 \t@echo "main() {}" > /tmp/a.c
-\t$(CC) -static /tmp/a.c $(OBJS) $(CPPFLAGS) $(DLDFLAGS) -lruby #{CONFIG["LIBS"]} $(LIBS) $(LOCAL_LIBS)
+\t$(CC) -static /tmp/a.c $(OBJS) $(CPPFLAGS) $(DLDFLAGS) #$stat_lib #{CONFIG["LIBS"]} $(LIBS) $(LOCAL_LIBS)
 \t@-rm /tmp/a.c a.out
 
 %.html: %.rd
@@ -42,7 +54,7 @@ unknown: $(DLLIB)
 rdoc: docs/doc/index.html
 
 docs/doc/index.html: $(RDOC)
-\t@-(cd docs; ruby b.rb bz2; rdoc bz2.rb)
+\t@-(cd docs; $(RUBY) b.rb bz2; rdoc bz2.rb)
 
 rd2: html
 
@@ -53,7 +65,7 @@ test: $(DLLIB)
    Dir.foreach('tests') do |x|
       next if /^\./ =~ x || /(_\.rb|~)$/ =~ x
       next if FileTest.directory?(x)
-      make.print "\truby tests/#{x}\n"
+      make.print "\t$(RUBY) tests/#{x}\n"
    end
 ensure
    make.close

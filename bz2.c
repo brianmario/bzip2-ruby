@@ -1,14 +1,15 @@
 #include <ruby.h>
 #include <rubyio.h>
 #include <bzlib.h>
+#include <version.h>
 
 static VALUE bz_cWriter, bz_cReader, bz_cInternal;
 static VALUE bz_eError, bz_eConfigError, bz_eEOZError;
 
 static VALUE bz_internal_ary;
 
-static ID id_alloc, id_new, id_write, id_open, id_flush, id_read;
-static ID id_closed, id_close;
+static ID id_new, id_write, id_open, id_flush, id_read;
+static ID id_closed, id_close, id_str;
 
 #define BZ2_RB_CLOSE    1
 #define BZ2_RB_INTERNAL 2
@@ -344,16 +345,6 @@ bz_writer_flush(obj)
 }
 
 static VALUE
-bz_writer_s_new(argc, argv, obj)
-    int argc;
-    VALUE obj, *argv;
-{
-    VALUE res = rb_funcall2(obj, id_alloc, 0, 0);
-    rb_obj_call_init(res, argc, argv);
-    return res;
-}
-
-static VALUE
 bz_writer_s_open(argc, argv, obj)
     int argc;
     VALUE obj, *argv;
@@ -373,10 +364,9 @@ bz_writer_s_open(argc, argv, obj)
 	argv += 1;
 	argc -= 1;
     }
-    res = rb_funcall2(obj, id_alloc, 0, 0);
+    res = rb_funcall2(obj, id_new, argc, argv);
     Data_Get_Struct(res, struct bz_file, bzf);
     bzf->flags |= BZ2_RB_CLOSE;
-    rb_obj_call_init(res, argc, argv);
     if (rb_block_given_p()) {
 	return rb_ensure(rb_yield, res, bz_writer_close, res);
     }
@@ -559,16 +549,6 @@ bz_reader_s_alloc(obj)
     return res;
 }
 
-static VALUE
-bz_reader_s_new(argc, argv, obj)
-    int argc;
-    VALUE obj, *argv;
-{
-    VALUE res = rb_funcall2(obj, id_alloc, 0, 0);
-    rb_obj_call_init(res, argc, argv);
-    return res;
-}
-
 static VALUE bz_reader_close __((VALUE));
 
 static VALUE
@@ -610,19 +590,7 @@ bz_reader_init(argc, argv, obj)
     if (OBJ_TAINTED(a)) {
 	OBJ_TAINT(obj);
     }
-    if (TYPE(a) == T_STRING) {
-	struct bz_str *bzs;
-
-	VALUE res = Data_Make_Struct(bz_cInternal, struct bz_str, 
-				     bz_str_mark, ruby_xfree, bzs);
-	bzs->str = a;
-	a = res;
-	internal = BZ2_RB_INTERNAL;
-    }
-    else {
-	if (!rb_respond_to(a, id_read)) {
-	    rb_raise(rb_eArgError, "first argument must respond to #read");
-	}
+    if (rb_respond_to(a, id_read)) {
 	if (TYPE(a) == T_FILE) {
 	    OpenFile *fptr;
 
@@ -635,6 +603,23 @@ bz_reader_init(argc, argv, obj)
 		rb_raise(rb_eArgError, "closed object");
 	    }
 	}
+    }
+    else {
+	struct bz_str *bzs;
+	VALUE res;
+
+	if (!rb_respond_to(a, id_str)) {
+	    rb_raise(rb_eArgError, "first argument must respond to #read");
+	}
+	a = rb_funcall2(a, id_str, 0, 0);
+	if (TYPE(a) != T_STRING) {
+	    rb_raise(rb_eArgError, "#to_str must return a String");
+	}
+	res = Data_Make_Struct(bz_cInternal, struct bz_str, 
+			       bz_str_mark, ruby_xfree, bzs);
+	bzs->str = a;
+	a = res;
+	internal = BZ2_RB_INTERNAL;
     }
     Data_Get_Struct(obj, struct bz_file, bzf);
     bzf->io = a;
@@ -1407,6 +1392,20 @@ bz_uncompress(argc, argv, obj)
     return bz_reader_read(1, &nilv, bz2);
 }
 
+#if RUBY_VERSION_CODE < 180
+
+static VALUE
+bz_s_new(argc, argv, obj)
+    int argc;
+    VALUE obj, *argv;
+{
+    VALUE res = rb_funcall2(obj, rb_intern("allocate"), 0, 0);
+    rb_obj_call_init(res, argc, argv);
+    return res;
+}
+
+#endif
+
 void Init_bz2()
 {
     VALUE bz_mBZ2;
@@ -1418,7 +1417,6 @@ void Init_bz2()
     bz_internal_ary = rb_ary_new();
     rb_set_end_proc(bz_internal_finalize, bz_internal_ary);
 
-    id_alloc = rb_intern("allocate");
     id_new = rb_intern("new");
     id_write = rb_intern("write");
     id_open = rb_intern("open");
@@ -1426,6 +1424,7 @@ void Init_bz2()
     id_read = rb_intern("read");
     id_close = rb_intern("close");
     id_closed = rb_intern("closed?");
+    id_str = rb_intern("to_str");
 
     bz_mBZ2 = rb_define_module("BZ2");
     bz_eConfigError = rb_define_class_under(bz_mBZ2, "ConfigError", rb_eFatal);
@@ -1440,8 +1439,12 @@ void Init_bz2()
       Writer
     */
     bz_cWriter = rb_define_class_under(bz_mBZ2, "Writer", rb_cData);
+#if RUBY_VERSION_CODE >= 180
+    rb_define_alloc_func(bz_cWriter, bz_writer_s_alloc);
+#else
     rb_define_singleton_method(bz_cWriter, "allocate", bz_writer_s_alloc, 0);
-    rb_define_singleton_method(bz_cWriter, "new", bz_writer_s_new, -1);
+    rb_define_singleton_method(bz_cWriter, "new", bz_s_new, -1);
+#endif    
     rb_define_singleton_method(bz_cWriter, "open", bz_writer_s_open, -1);
     rb_define_method(bz_cWriter, "initialize", bz_writer_init, -1);
     rb_define_method(bz_cWriter, "write", bz_writer_write, 1);
@@ -1451,6 +1454,7 @@ void Init_bz2()
     rb_define_method(bz_cWriter, "printf", rb_io_printf, -1);
     rb_define_method(bz_cWriter, "<<", rb_io_addstr, 1);
     rb_define_method(bz_cWriter, "flush", bz_writer_flush, 0);
+    rb_define_method(bz_cWriter, "finish", bz_writer_flush, 0);
     rb_define_method(bz_cWriter, "close", bz_writer_close, 0);
     rb_define_method(bz_cWriter, "close!", bz_writer_close_bang, 0);
     rb_define_method(bz_cWriter, "to_io", bz_to_io, 0);
@@ -1459,8 +1463,12 @@ void Init_bz2()
     */
     bz_cReader = rb_define_class_under(bz_mBZ2, "Reader", rb_cData);
     rb_include_module(bz_cReader, rb_mEnumerable);
+#if RUBY_VERSION_CODE >= 180
+    rb_define_alloc_func(bz_cReader, bz_reader_s_alloc);
+#else
     rb_define_singleton_method(bz_cReader, "allocate", bz_reader_s_alloc, 0);
-    rb_define_singleton_method(bz_cReader, "new", bz_reader_s_new, -1);
+    rb_define_singleton_method(bz_cReader, "new", bz_s_new, -1);
+#endif
     rb_define_singleton_method(bz_cReader, "open", bz_reader_s_open, -1);
     rb_define_singleton_method(bz_cReader, "foreach", bz_reader_s_foreach, -1);
     rb_define_singleton_method(bz_cReader, "readlines", bz_reader_s_readlines, -1);
