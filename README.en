@@ -8,15 +8,15 @@
  
  You may need to specify :
 
-  --with-bz2-include-dir=<include file directory for libbzip2>
+  --with-bz2-include=<include file directory for libbzip2>
 
-  --with-bz2-lib-dir=<library directory for libbzip2>
+  --with-bz2-lib=<library directory for libbzip2>
 
-  --with-bz2-prefix=<prefix for library and include of libbzip2>
+  --with-bz2-dir=<prefix for library and include of libbzip2>
 
  Example :
  
-  ruby extconf.rb --with-bz2-prefix=/home/ts/local
+  ruby extconf.rb --with-bz2-dir=/home/ts/local
 
 * Documentation :
 

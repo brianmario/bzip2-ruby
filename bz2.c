@@ -1468,6 +1468,7 @@ void Init_bz2()
 
     rb_define_module_function(bz_mBZ2, "compress", bz_compress, -1);
     rb_define_module_function(bz_mBZ2, "uncompress", bz_uncompress, -1);
+    rb_define_module_function(bz_mBZ2, "decompress", bz_uncompress, -1);
     rb_define_module_function(bz_mBZ2, "bzip2", bz_compress, -1);
     rb_define_module_function(bz_mBZ2, "bunzip2", bz_uncompress, -1);
     /*

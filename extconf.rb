@@ -1,23 +1,16 @@
+#!/usr/bin/ruby
+ARGV.collect! {|x| x.sub(/^--with-bz2-prefix=/, "--with-bz2-dir=") }
+
 require 'mkmf'
 
-$stat_lib = if CONFIG.key?("LIBRUBYARG_STATIC")
-	       $LDFLAGS += " -L#{CONFIG['libdir']}"
-	       CONFIG["LIBRUBYARG_STATIC"]
-	    else
-	       "-lruby"
-	    end
-
-if prefix = with_config("bz2-prefix")
-   $CFLAGS += " -I#{prefix}/include"
-   $LDFLAGS += " -L#{prefix}/lib"
-end
-
-if incdir = with_config("bz2-include-dir")
-   $CFLAGS += " -I#{incdir}" 
-end
-
-if libdir = with_config("bz2-lib-dir")
-   $LDFLAGS += " -L#{libdir}" 
+if unknown = enable_config("unknown")
+   libs = if CONFIG.key?("LIBRUBYARG_STATIC")
+	     Config::expand(CONFIG["LIBRUBYARG_STATIC"].dup).sub(/^-l/, '')
+	  else
+	     Config::expand(CONFIG["LIBRUBYARG"].dup).sub(/^lib([^.]*).*/, '\\1')
+	  end
+   unknown = find_library(libs, "ruby_init", 
+			  Config::expand(CONFIG["archdir"].dup))
 end
 
 if !have_library('bz2', 'BZ2_bzWriteOpen')
@@ -32,12 +25,17 @@ create_makefile('bz2')
 
 begin
    make = open("Makefile", "a")
-   make.print <<-EOF
+   if unknown
+      make.print <<-EOF
 
 unknown: $(DLLIB)
 \t@echo "main() {}" > /tmp/a.c
-\t$(CC) -static /tmp/a.c $(OBJS) $(CPPFLAGS) $(DLDFLAGS) #$stat_lib #{CONFIG["LIBS"]} $(LIBS) $(LOCAL_LIBS)
+\t$(CC) -static /tmp/a.c $(OBJS) $(CPPFLAGS) $(LIBPATH) $(LIBS) $(LOCAL_LIBS)
 \t@-rm /tmp/a.c a.out
+
+EOF
+   end
+   make.print <<-EOF
 
 %.html: %.rd
 \trd2 $< > ${<:%.rd=%.html}
