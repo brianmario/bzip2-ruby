@@ -19,3 +19,9 @@
  * corrected #lineno
  * corrected ::Writer::new(nil)
  * taint result
+
+--- 0.1.4
+
+ * corrected bz_iv
+ * #to_io
+ * corrected ::Reader#close

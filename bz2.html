@@ -75,107 +75,113 @@ to_s</p></dd>
 <dt><a name="label:17" id="label:17"><code>puts(<var>object</var>, ...)</code></a></dt><!-- RDLabel: "puts" -->
 <dd>
 <p>Writes the given objects </p></dd>
-<dt><a name="label:18" id="label:18"><code>write(<var>str</var>)</code></a></dt><!-- RDLabel: "write" -->
+<dt><a name="label:18" id="label:18"><code>to_io</code></a></dt><!-- RDLabel: "to_io" -->
+<dd>
+<p>return the associated object</p></dd>
+<dt><a name="label:19" id="label:19"><code>write(<var>str</var>)</code></a></dt><!-- RDLabel: "write" -->
 <dd>
 <p>Write the string <var>str</var></p></dd>
 </dl>
-<h2><a name="label:19" id="label:19">BZ2::Reader</a></h2><!-- RDLabel: "BZ2::Reader" -->
+<h2><a name="label:20" id="label:20">BZ2::Reader</a></h2><!-- RDLabel: "BZ2::Reader" -->
 <pre>Included modules : Enumerable</pre>
-<h3><a name="label:20" id="label:20">Class methods</a></h3><!-- RDLabel: "Class methods" -->
+<h3><a name="label:21" id="label:21">Class methods</a></h3><!-- RDLabel: "Class methods" -->
 <dl>
-<dt><a name="label:21" id="label:21"><code>allocate</code></a></dt><!-- RDLabel: "allocate" -->
+<dt><a name="label:22" id="label:22"><code>allocate</code></a></dt><!-- RDLabel: "allocate" -->
 <dd>
 <p>allocate a new <var>BZ2::Reader</var></p></dd>
-<dt><a name="label:22" id="label:22"><code>foreach(<var>filename</var>, <var>separator</var> = $/) {|<var>line</var>| ... }</code></a></dt><!-- RDLabel: "foreach" -->
+<dt><a name="label:23" id="label:23"><code>foreach(<var>filename</var>, <var>separator</var> = $/) {|<var>line</var>| ... }</code></a></dt><!-- RDLabel: "foreach" -->
 <dd>
 <p>Uncompress the file and call the block for each line, where
 lines are separated by <var>separator</var></p></dd>
-<dt><a name="label:23" id="label:23"><code>open(<var>filename</var>)</code></a></dt><!-- RDLabel: "open" -->
+<dt><a name="label:24" id="label:24"><code>open(<var>filename</var>)</code></a></dt><!-- RDLabel: "open" -->
 <dd>
 <p>With no associated block, open is a synonym for BZ2::Reader::new. If the
 optional code block is given, it will be passed file as an
 argument, and the file will automatically be closed when the block
 terminates.</p></dd>
-<dt><a name="label:24" id="label:24"><code>readlines(<var>filename</var>, <var>separator</var> = $/)</code></a></dt><!-- RDLabel: "readlines" -->
+<dt><a name="label:25" id="label:25"><code>readlines(<var>filename</var>, <var>separator</var> = $/)</code></a></dt><!-- RDLabel: "readlines" -->
 <dd>
 <p>Uncompress the file and reads the entire file as individual lines,
 and returns those lines in an array. Lines are separated by 
 <var>separator</var></p></dd>
 </dl>
-<h3><a name="label:25" id="label:25">Methods</a></h3><!-- RDLabel: "Methods" -->
+<h3><a name="label:26" id="label:26">Methods</a></h3><!-- RDLabel: "Methods" -->
 <dl>
-<dt><a name="label:26" id="label:26"><code>initialize(<var>object</var>, <var>small</var> = <var>false</var>)</code></a></dt><!-- RDLabel: "initialize" -->
+<dt><a name="label:27" id="label:27"><code>initialize(<var>object</var>, <var>small</var> = <var>false</var>)</code></a></dt><!-- RDLabel: "initialize" -->
 <dd>
 <p>object must be a String which contains compressed data, or an
 object which respond to <var>read(size)</var></p>
 <p>If <var>small</var> is <var>true</var>, the library will use an alternative 
 decompression algorithm which uses less memory but at the cost of
 decompressing more slowly</p></dd>
-<dt><a name="label:27" id="label:27"><code>close(<var>end</var> = <var>true</var>)</code></a></dt><!-- RDLabel: "close" -->
+<dt><a name="label:28" id="label:28"><code>close(<var>end</var> = <var>true</var>)</code></a></dt><!-- RDLabel: "close" -->
 <dd>
 <p>Terminate the uncompression.</p>
 <p>If <var>end</var> has a <var>true</var> value, the file is closed. Otherwise
 the file is put at the beginning of the next bzip component.</p></dd>
-<dt><a name="label:28" id="label:28"><code>closed?</code></a></dt><!-- RDLabel: "closed?" -->
+<dt><a name="label:29" id="label:29"><code>closed?</code></a></dt><!-- RDLabel: "closed?" -->
 <dd>
 <p>Return true if the file is closed</p></dd>
-<dt><a name="label:29" id="label:29"><code>each(<var>separator</var> = $/) {|<var>line</var>| ... }</code></a><!-- RDLabel: "each" -->
-<dt><a name="label:30" id="label:30"><code>each_line(<var>separator</var> = $/) {|<var>line</var>| ... }</code></a></dt><!-- RDLabel: "each_line" -->
+<dt><a name="label:30" id="label:30"><code>each(<var>separator</var> = $/) {|<var>line</var>| ... }</code></a><!-- RDLabel: "each" -->
+<dt><a name="label:31" id="label:31"><code>each_line(<var>separator</var> = $/) {|<var>line</var>| ... }</code></a></dt><!-- RDLabel: "each_line" -->
 <dd>
 <p>Execute the block for each line, where lines
 are separated by the optional <var>separator</var></p></dd>
-<dt><a name="label:31" id="label:31"><code>eof</code></a></dt><!-- RDLabel: "eof" -->
+<dt><a name="label:32" id="label:32"><code>eof</code></a></dt><!-- RDLabel: "eof" -->
 <dd>
 <p>Return true at end of file</p></dd>
-<dt><a name="label:32" id="label:32"><code>eoz</code></a></dt><!-- RDLabel: "eoz" -->
+<dt><a name="label:33" id="label:33"><code>eoz</code></a></dt><!-- RDLabel: "eoz" -->
 <dd>
 <p>"End Of Zip". Return true at the end of the zip component</p></dd>
-<dt><a name="label:33" id="label:33"><code>getc</code></a></dt><!-- RDLabel: "getc" -->
+<dt><a name="label:34" id="label:34"><code>getc</code></a></dt><!-- RDLabel: "getc" -->
 <dd>
 <p>Get the next 8-bit byte (0..255). Returns nil if called
 at end of file.</p></dd>
-<dt><a name="label:34" id="label:34"><code>gets(<var>separator</var> = $/)</code></a></dt><!-- RDLabel: "gets" -->
+<dt><a name="label:35" id="label:35"><code>gets(<var>separator</var> = $/)</code></a></dt><!-- RDLabel: "gets" -->
 <dd>
 <p>Reads the next line; lines are separated by <var>separator</var>.
 Returns nil if called at end of file.</p></dd>
-<dt><a name="label:35" id="label:35"><code>lineno</code></a></dt><!-- RDLabel: "lineno" -->
+<dt><a name="label:36" id="label:36"><code>lineno</code></a></dt><!-- RDLabel: "lineno" -->
 <dd>
 <p>Return the current line number</p></dd>
-<dt><a name="label:36" id="label:36"><code>lineno=(<var>num</var>)</code></a></dt><!-- RDLabel: "lineno=" -->
+<dt><a name="label:37" id="label:37"><code>lineno=(<var>num</var>)</code></a></dt><!-- RDLabel: "lineno=" -->
 <dd>
 <p>Manually sets the current line number to the given value</p></dd>
-<dt><a name="label:37" id="label:37"><code>read(<var>number</var>)</code></a></dt><!-- RDLabel: "read" -->
+<dt><a name="label:38" id="label:38"><code>read(<var>number</var>)</code></a></dt><!-- RDLabel: "read" -->
 <dd>
 <p>Read at most <var>number</var> characters
 Returns nil if called at end of file</p></dd>
-<dt><a name="label:38" id="label:38"><code>readline(<var>separator</var> = $/)</code></a></dt><!-- RDLabel: "readline" -->
+<dt><a name="label:39" id="label:39"><code>readline(<var>separator</var> = $/)</code></a></dt><!-- RDLabel: "readline" -->
 <dd>
 <p>Reads the next line; lines are separated by <var>separator</var>.
 Raise an error at end of file</p></dd>
-<dt><a name="label:39" id="label:39"><code>readlines(<var>separator</var> = $/)</code></a></dt><!-- RDLabel: "readlines" -->
+<dt><a name="label:40" id="label:40"><code>readlines(<var>separator</var> = $/)</code></a></dt><!-- RDLabel: "readlines" -->
 <dd>
 <p>Reads all of the lines, and returns them in anArray. Lines
 are separated by the optional <var>separator</var></p></dd>
-<dt><a name="label:40" id="label:40"><code>ungetc(<var>char</var>)</code></a></dt><!-- RDLabel: "ungetc" -->
+<dt><a name="label:41" id="label:41"><code>to_io</code></a></dt><!-- RDLabel: "to_io" -->
+<dd>
+<p>return the associated object</p></dd>
+<dt><a name="label:42" id="label:42"><code>ungetc(<var>char</var>)</code></a></dt><!-- RDLabel: "ungetc" -->
 <dd>
 <p>Push back one character</p></dd>
-<dt><a name="label:41" id="label:41"><code>ungets(<var>str</var>)</code></a></dt><!-- RDLabel: "ungets" -->
+<dt><a name="label:43" id="label:43"><code>ungets(<var>str</var>)</code></a></dt><!-- RDLabel: "ungets" -->
 <dd>
 <p>Push back the string</p></dd>
-<dt><a name="label:42" id="label:42"><code>unused</code></a></dt><!-- RDLabel: "unused" -->
+<dt><a name="label:44" id="label:44"><code>unused</code></a></dt><!-- RDLabel: "unused" -->
 <dd>
 <p>Return the String read by <var>BZ2::Reader</var> but not used in the 
 uncompression</p></dd>
-<dt><a name="label:43" id="label:43"><code>unused=(<var>str</var>)</code></a></dt><!-- RDLabel: "unused=" -->
+<dt><a name="label:45" id="label:45"><code>unused=(<var>str</var>)</code></a></dt><!-- RDLabel: "unused=" -->
 <dd>
 <p>Initialize the uncompression with the String <var>str</var></p></dd>
 </dl>
-<h2><a name="label:44" id="label:44">Exceptions</a></h2><!-- RDLabel: "Exceptions" -->
-<h3><a name="label:45" id="label:45">BZ2::ConfigError &lt; Fatal</a></h3><!-- RDLabel: "BZ2::ConfigError < Fatal" -->
+<h2><a name="label:46" id="label:46">Exceptions</a></h2><!-- RDLabel: "Exceptions" -->
+<h3><a name="label:47" id="label:47">BZ2::ConfigError &lt; Fatal</a></h3><!-- RDLabel: "BZ2::ConfigError < Fatal" -->
 <pre>Indicates that the library has been improperly compiled on your platform</pre>
-<h3><a name="label:46" id="label:46">BZ2::Error &lt; ::IOError</a></h3><!-- RDLabel: "BZ2::Error < ::IOError" -->
+<h3><a name="label:48" id="label:48">BZ2::Error &lt; ::IOError</a></h3><!-- RDLabel: "BZ2::Error < ::IOError" -->
 <pre>Exception raised by BZ2</pre>
-<h3><a name="label:47" id="label:47">BZ2::EOZError &lt; BZ2::Error</a></h3><!-- RDLabel: "BZ2::EOZError < BZ2::Error" -->
+<h3><a name="label:49" id="label:49">BZ2::EOZError &lt; BZ2::Error</a></h3><!-- RDLabel: "BZ2::EOZError < BZ2::Error" -->
 <pre>"End of Zip" exception : compressed file finishes before the logical 
  end of stream is detected</pre>
 

@@ -85,6 +85,9 @@ bz2 is an extension to use libbzip2 from ruby
 --- puts(object, ...)
     Writes the given objects 
 
+--- to_io
+    return the associated object
+
 --- write(str)
     Write the string ((|str|))
 
@@ -175,6 +178,9 @@ bz2 is an extension to use libbzip2 from ruby
 --- readlines(separator = $/)
     Reads all of the lines, and returns them in anArray. Lines
     are separated by the optional ((|separator|))
+
+--- to_io
+    return the associated object
 
 --- ungetc(char)
     Push back one character
