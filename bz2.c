@@ -207,8 +207,8 @@ bz_writer_internal_close(bzf)
 }
 
 static VALUE
-bz_internal_finalize(ary)
-    VALUE ary;
+bz_internal_finalize(ary, obj)
+    VALUE ary, obj;
 {
     VALUE elem;
     int closed, i;
@@ -1465,12 +1465,11 @@ bz_proc_new(func, val)
     VALUE val;
 {
     VALUE tmp = Data_Wrap_Struct(rb_cData, 0, 0, 0);
-    rb_define_singleton_method(tmp, "tmp_proc", func, 0);
+    rb_define_singleton_method(tmp, "tmp_proc", func, 1);
     return rb_funcall2(rb_funcall(tmp, rb_intern("method"), 1, 
-                                 ID2SYM(rb_intern("tmp_proc"))),
+                                  ID2SYM(rb_intern("tmp_proc"))),
                        rb_intern("to_proc"), 0, 0);
 }
-    
 
 void Init_bz2()
 {
