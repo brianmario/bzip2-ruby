@@ -228,6 +228,9 @@ bz_writer_close(obj)
 	res = bzf->io;
     }
     bz_writer_internal_close(bzf);
+    if (!NIL_P(res)) {
+	RBASIC(res)->klass = rb_cString;
+    }
     return res;
 }
 
@@ -369,6 +372,13 @@ bz_str_write(obj, str)
 }
 
 static VALUE
+bz_str_closed(obj)
+    VALUE obj;
+{
+    return Qfalse;
+}
+
+static VALUE
 bz_writer_init(argc, argv, obj)
     int argc;
     VALUE obj, *argv;
@@ -389,6 +399,7 @@ bz_writer_init(argc, argv, obj)
     if (NIL_P(a)) {
 	a = rb_str_new(0, 0);
 	rb_define_method(rb_singleton_class(a), "write", bz_str_write, 1);
+	rb_define_method(rb_singleton_class(a), "closed?", bz_str_closed, 0);
 	bzf->flags |= BZ2_RB_INTERNAL;
     }
     else {
@@ -496,6 +507,11 @@ bz_compress(argc, argv, obj)
     str = argv[0];
     argv[0] = Qnil;
     bz2 = rb_funcall2(bz_cWriter, id_new, argc, argv);
+    if (OBJ_TAINTED(str)) {
+	struct bz_file *bzf;
+	Data_Get_Struct(bz2, struct bz_file, bzf);
+	OBJ_TAINT(bzf->io);
+    }
     bz_writer_write(bz2, str);
     return bz_writer_close(bz2);
 }
@@ -562,6 +578,10 @@ bz_reader_init(argc, argv, obj)
     if (rb_scan_args(argc, argv, "11", &a, &b) == 2) {
 	small = RTEST(b);
     }
+    rb_io_taint_check(a);
+    if (OBJ_TAINTED(a)) {
+	OBJ_TAINT(obj);
+    }
     if (TYPE(a) == T_STRING) {
 	struct bz_str *bzs;
 
@@ -572,7 +592,6 @@ bz_reader_init(argc, argv, obj)
 	internal = BZ2_RB_INTERNAL;
     }
     else {
-	rb_io_taint_check(a);
 	if (!rb_respond_to(a, id_read)) {
 	    rb_raise(rb_eArgError, "first argument must respond to #read");
 	}
@@ -773,6 +792,9 @@ bz_reader_read(argc, argv, obj)
 	return Qnil;
     }
     res = rb_str_new(0, 0);
+    if (OBJ_TAINTED(obj)) {
+	OBJ_TAINT(res);
+    }
     if (n == 0) {
 	return res;
     }
@@ -838,25 +860,12 @@ bz_reader_ungets(obj, a)
     VALUE obj, a;
 {
     struct bz_file *bzf;
-    char *start, *end;
 
     Check_Type(a, T_STRING);
     Get_BZ2(obj, bzf);
     if (!bzf->buf) {
 	bz_raise(BZ_SEQUENCE_ERROR);
     }
-
-    start = RSTRING(a)->ptr;
-    end = start + RSTRING(a)->len;
-    while (start < end) {
-	if ('\n' == (*start++ & 0xff)) {
-	    bzf->lineno--;
-	}
-    }
-    if (bzf->lineno < 0) {
-	bzf->lineno = 0;
-    }
-
     if ((bzf->bzs.avail_out + RSTRING(a)->len) < bzf->buflen) {
 	bzf->bzs.next_out -= RSTRING(a)->len;
 	MEMCPY(bzf->bzs.next_out, RSTRING(a)->ptr, char, RSTRING(a)->len);
@@ -869,7 +878,7 @@ bz_reader_ungets(obj, a)
 	bzf->buf[bzf->buflen] = '\0';
 	bzf->bzs.next_out = bzf->buf;
 	bzf->bzs.avail_out = bzf->buflen;
-     }
+    }
     return Qnil;
 }
 
@@ -911,12 +920,8 @@ bz_reader_gets_internal(argc, argv, obj)
     if (NIL_P(rs)) {
 	return bz_reader_read(1, &rs, obj);
     }
-    if (rs == rb_default_rs) {
-	return bz_reader_gets(obj);
-    }
-
     rslen = RSTRING(rs)->len;
-    if (rslen == 1 && RSTRING(rs)->ptr[0] == '\n') {
+    if (rs == rb_default_rs || (rslen == 1 && RSTRING(rs)->ptr[0] == '\n')) {
 	return bz_reader_gets(obj);
     }
 
@@ -985,7 +990,7 @@ bz_reader_getc(obj)
 static void
 bz_eoz_error()
 {
-    rb_raise(bz_eEOZError, "End of Zipfile reached");
+    rb_raise(bz_eEOZError, "End of Zip component reached");
 }
 
 static VALUE
