@@ -42,7 +42,7 @@ unknown: $(DLLIB)
 rdoc: docs/doc/index.html
 
 docs/doc/index.html: $(RDOC)
-\t@-(cd docs; b.rb bz2; rdoc bz2.rb)
+\t@-(cd docs; ruby b.rb bz2; rdoc bz2.rb)
 
 rd2: html
 

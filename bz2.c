@@ -155,6 +155,7 @@ bz_writer_internal_flush(bzf)
 	free(bzf->buf);
 	bzf->buf = 0;
 	BZ2_bzCompressEnd(&(bzf->bzs));
+	bzf->state = BZ_OK;
 	if (!closed && rb_respond_to(bzf->io, id_flush)) {
 	    rb_funcall2(bzf->io, id_flush, 0, 0);
 	}
@@ -235,6 +236,27 @@ bz_writer_close(obj)
 	RBASIC(res)->klass = rb_cString;
     }
     return res;
+}
+
+static VALUE
+bz_writer_close_bang(obj)
+    VALUE obj;
+{
+    struct bz_file *bzf;
+    int closed;
+
+    Get_BZ2(obj, bzf);
+    closed = bzf->flags & (BZ2_RB_INTERNAL|BZ2_RB_CLOSE);
+    bz_writer_close(obj);
+    if (!closed && rb_respond_to(bzf->io, id_close)) {
+	if (rb_respond_to(bzf->io, id_closed)) {
+	    closed = RTEST(rb_funcall2(bzf->io, id_closed, 0, 0));
+	}
+	if (!closed) {
+	    rb_funcall2(bzf->io, id_close, 0, 0);
+	}
+    }
+    return Qnil;
 }
 
 static void
@@ -1192,23 +1214,40 @@ bz_reader_close(obj)
 }
 
 static VALUE
-bz_reader_close_m(argc, argv, obj)
-    int argc;
-    VALUE obj, *argv;
+bz_reader_finish(obj)
+    VALUE obj;
 {
     struct bz_file *bzf;
-    VALUE end;
 
-    if (rb_scan_args(argc, argv, "01", &end) && !RTEST(end)) {
-	Get_BZ2(obj, bzf);
-	if (bzf->buf) {
-	    rb_funcall2(obj, id_read, 0, 0);
-	    free(bzf->buf);
-	}
-	bzf->buf = 0;
-	return Qnil;
+    Get_BZ2(obj, bzf);
+    if (bzf->buf) {
+	rb_funcall2(obj, id_read, 0, 0);
+	free(bzf->buf);
     }
-    return bz_reader_close(obj);
+    bzf->buf = 0;
+    bzf->state = BZ_OK;
+    return Qnil;
+}
+
+static VALUE
+bz_reader_close_bang(obj)
+    VALUE obj;
+{
+    struct bz_file *bzf;
+    int closed;
+
+    Get_BZ2(obj, bzf);
+    closed = bzf->flags & (BZ2_RB_CLOSE|BZ2_RB_INTERNAL);
+    bz_reader_close(obj);
+    if (!closed && rb_respond_to(bzf->io, id_close)) {
+	if (rb_respond_to(bzf->io, id_closed)) {
+	    closed = RTEST(rb_funcall2(bzf->io, id_closed, 0, 0));
+	}
+	if (!closed) {
+	    rb_funcall2(bzf->io, id_close, 0, 0);
+	}
+    }
+    return Qnil;
 }
 
 struct foreach_arg {
@@ -1413,6 +1452,7 @@ void Init_bz2()
     rb_define_method(bz_cWriter, "<<", rb_io_addstr, 1);
     rb_define_method(bz_cWriter, "flush", bz_writer_flush, 0);
     rb_define_method(bz_cWriter, "close", bz_writer_close, 0);
+    rb_define_method(bz_cWriter, "close!", bz_writer_close_bang, 0);
     rb_define_method(bz_cWriter, "to_io", bz_to_io, 0);
     /*
       Reader
@@ -1438,7 +1478,9 @@ void Init_bz2()
     rb_define_method(bz_cReader, "each", bz_reader_each_line, -1);
     rb_define_method(bz_cReader, "each_line", bz_reader_each_line, -1);
     rb_define_method(bz_cReader, "each_byte", bz_reader_each_byte, 0);
-    rb_define_method(bz_cReader, "close", bz_reader_close_m, -1);
+    rb_define_method(bz_cReader, "close", bz_reader_close, 0);
+    rb_define_method(bz_cReader, "close!", bz_reader_close_bang, 0);
+    rb_define_method(bz_cReader, "finish", bz_reader_finish, 0);
     rb_define_method(bz_cReader, "closed", bz_reader_closed, 0);
     rb_define_method(bz_cReader, "closed?", bz_reader_closed, 0);
     rb_define_method(bz_cReader, "eoz?", bz_reader_eoz, 0);

@@ -41,15 +41,31 @@ bz2 is an extension to use libbzip2 from ruby
 --- allocate
     allocate a new ((|BZ2::Writer|))
 
---- open(file, mode = "w", blocks = 9, work = 0) {|bz2| ... }
-    Create a new ((|BZ2::Writer|)) and call the associated block.
-    The object is closed at the end of the block
+--- new(object, mode = "w", blocks = 9, work = 0)
+    Create a new ((|BZ2::Writer|)) associated with ((|object|)).
+
+    ((|object|)) must respond to ((|write|)), or must be ((|nil|))
+    in this case the compressed string is returned when ((|flush|))
+    is called
+
+    See ((|initialize|)) for ((|blocks|)) and ((|work|))
+
+--- open(filename, mode = "w", blocks = 9, work = 0) {|bz2| ... }
+    Call Kernel#open(filename), associate it a new ((|BZ2::Writer|))
+    and call the associated block if given.
+
+    The bz2 object is closed at the end of the block
+
+    See ((|initialize|)) for ((|blocks|)) and ((|work|))
 
 # end
 === Methods
 
 --- close
     Terminate the compression.
+
+--- close!
+    Terminate the compression and close the associated object
 
 --- flush
     Flush the data and terminate the compression, the object can be re-used
@@ -111,11 +127,19 @@ bz2 is an extension to use libbzip2 from ruby
     Uncompress the file and call the block for each line, where
     lines are separated by ((|separator|))
 
---- open(filename)
-    With no associated block, open is a synonym for BZ2::Reader::new. If the
-    optional code block is given, it will be passed file as an
-    argument, and the file will automatically be closed when the block
-    terminates.
+--- new(object, small = false)
+    Associate a new bz2 reader with ((|object|)). ((|object|)) must
+    respond to ((|read|))
+
+    See ((|initialize|)) for ((|small|))
+
+--- open(filename, small = false) {|bz2| ... }
+    Call Kernel#open(filename), and associate it a new ((|BZ2::Reader|)).
+    The bz2 object is passed as an argument to the block.
+
+    The object is closed at the end of the block
+
+    See ((|initialize|)) for ((|small|))
 
 --- readlines(filename, separator = $/)
     Uncompress the file and reads the entire file as individual lines,
@@ -133,11 +157,11 @@ bz2 is an extension to use libbzip2 from ruby
     decompression algorithm which uses less memory but at the cost of
     decompressing more slowly
 
---- close(end = true)
-    Terminate the uncompression.
+--- close
+    Terminate the uncompression and close the bz2
 
-    If ((|end|)) has a ((|true|)) value, the file is closed. Otherwise
-    the file is put at the beginning of the next bzip component.
+--- close!
+    Terminate the uncompression, close the bz2 and the associated object
 
 --- closed?
     Return true if the file is closed
@@ -152,6 +176,10 @@ bz2 is an extension to use libbzip2 from ruby
 
 --- eoz
     "End Of Zip". Return true at the end of the zip component
+
+--- finish
+    Terminate the uncompression of the current zip component, and keep the
+    bz2 active (to read another zip component)
 
 --- getc
     Get the next 8-bit byte (0..255). Returns nil if called

@@ -25,3 +25,10 @@
  * corrected bz_iv
  * #to_io
  * corrected ::Reader#close
+
+--- 0.1.5
+
+ * corrected extconf.rb 
+ * added close!
+ * replaced close(false) by #finish
+ * corrected #flush
