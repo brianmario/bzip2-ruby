@@ -498,7 +498,7 @@ bz_writer_write(obj, a)
 	bzf->state = BZ_OK;
 	if (bzf->bzs.avail_out < bzf->buflen) {
 	    n = bzf->buflen - bzf->bzs.avail_out;
-	    rb_funcall(bzf->io, id_write, 1, rb_str_new(bzf->buf, n), n);
+	    rb_funcall(bzf->io, id_write, 1, rb_str_new(bzf->buf, n));
 	}
     }
     return INT2NUM(RSTRING(a)->len);
@@ -701,45 +701,49 @@ bz_next_available(bzf, in)
 #define ASIZE (1 << CHAR_BIT)
 
 static VALUE
-bz_read_until(bzf, str, len)
+bz_read_until(bzf, str, len, td1)
     struct bz_file *bzf;
     char *str;
     int len;
+    int *td1;
 {
     VALUE res;
     int total, i, nex = 0;
-    int td1[ASIZE];
     char *p, *t, *tx, *end, *pend = str + len;
 
-    if (len != 1) {
-	for (i = 0; i < ASIZE; i++) {
-	    td1[i] = len + 1;
-	}
-	for (i = 0; i < len; i++) {
-	    td1[*(str + i)] = len - i;
-	}
-    }
     res = rb_str_new(0, 0);
     while (1) {
 	total = bzf->bzs.avail_out;
-	tx = bzf->bzs.next_out;
-	end = bzf->bzs.next_out + bzf->bzs.avail_out;
-	while (tx + len <= end) {
-	    for (p = str, t = tx; p != pend; ++p, ++t) {
-		if (*p != *t) break;
-	    }
-	    if (p == pend) {
+	if (len == 1) {
+	    tx = memchr(bzf->bzs.next_out, *str, bzf->bzs.avail_out);
+	    if (tx) {
 		i = tx - bzf->bzs.next_out + len;
 		res = rb_str_cat(res, bzf->bzs.next_out, i);
 		bzf->bzs.next_out += i;
 		bzf->bzs.avail_out -= i;
 		return res;
 	    }
-	    if (len == 1) {
-		tx += 1;
-	    }
-	    else {
-		tx += td1[*(tx + len)];
+	}
+	else {
+	    tx = bzf->bzs.next_out;
+	    end = bzf->bzs.next_out + bzf->bzs.avail_out;
+	    while (tx + len <= end) {
+		for (p = str, t = tx; p != pend; ++p, ++t) {
+		    if (*p != *t) break;
+		}
+		if (p == pend) {
+		    i = tx - bzf->bzs.next_out + len;
+		    res = rb_str_cat(res, bzf->bzs.next_out, i);
+		    bzf->bzs.next_out += i;
+		    bzf->bzs.avail_out -= i;
+		    return res;
+		}
+		if (td1) {
+		    tx += td1[*(tx + len)];
+		}
+		else {
+		    tx += 1;
+		}
 	    }
 	}
 	nex = 0;
@@ -910,7 +914,7 @@ bz_reader_gets(obj)
 
     bzf = bz_get_bzf(obj);
     if (bzf) {
-	str = bz_read_until(bzf, "\n", 1);
+	str = bz_read_until(bzf, "\n", 1, 0);
 	if (!NIL_P(str)) {
 	    bzf->lineno++;
 	    OBJ_TAINT(str);
@@ -920,14 +924,15 @@ bz_reader_gets(obj)
 }
 
 static VALUE
-bz_reader_gets_internal(argc, argv, obj)
+bz_reader_gets_internal(argc, argv, obj, td, init)
     int argc;
     VALUE obj, *argv;
+    int *td, init;
 {
     struct bz_file *bzf;
     VALUE rs, res;
     char *rsptr;
-    int rslen, rspara;
+    int rslen, rspara, *td1;
 
     rs = rb_rs;
     if (argc) {
@@ -961,7 +966,22 @@ bz_reader_gets_internal(argc, argv, obj)
     if (rspara) {
 	bz_read_while(bzf, '\n');
     }
-    res = bz_read_until(bzf, rsptr, rslen);
+    td1 = 0;
+    if (rslen != 1) {
+	if (init) {
+	    int i;
+
+	    for (i = 0; i < ASIZE; i++) {
+		td[i] = rslen + 1;
+	    }
+	    for (i = 0; i < rslen; i++) {
+		td[*(rsptr + i)] = rslen - i;
+	    }
+	}
+	td1 = td;
+    }
+
+    res = bz_read_until(bzf, rsptr, rslen, td1);
     if (rspara) {
 	bz_read_while(bzf, '\n');
     }
@@ -1029,7 +1049,8 @@ bz_reader_gets_m(argc, argv, obj)
     int argc;
     VALUE obj, *argv;
 {
-    VALUE str = bz_reader_gets_internal(argc, argv, obj);
+    int td[ASIZE];
+    VALUE str = bz_reader_gets_internal(argc, argv, obj, td, Qtrue);
 
     if (!NIL_P(str)) {
 	rb_lastline_set(str);
@@ -1056,9 +1077,12 @@ bz_reader_readlines(argc, argv, obj)
     VALUE obj, *argv;
 {
     VALUE line, ary;
+    int td[ASIZE], in;
 
+    in = Qtrue;
     ary = rb_ary_new();
-    while (!NIL_P(line = bz_reader_gets_internal(argc, argv, obj))) {
+    while (!NIL_P(line = bz_reader_gets_internal(argc, argv, obj, td, in))) {
+	in = Qfalse;
 	rb_ary_push(ary, line);
     }
     return ary;
@@ -1070,8 +1094,11 @@ bz_reader_each_line(argc, argv, obj)
     VALUE obj, *argv;
 {
     VALUE line;
+    int td[ASIZE], in;
 
-    while (!NIL_P(line = bz_reader_gets_internal(argc, argv, obj))) {
+    in = Qtrue;
+    while (!NIL_P(line = bz_reader_gets_internal(argc, argv, obj, td, in))) {
+	in = Qfalse;
 	rb_yield(line);
     }
     return obj;
@@ -1246,8 +1273,12 @@ bz_reader_foreach_line(arg)
     struct foreach_arg *arg;
 {
     VALUE str;
+    int td[ASIZE], in;
 
-    while (!NIL_P(str = bz_reader_gets_internal(arg->argc, &arg->sep, arg->obj))) {
+    in = Qtrue;
+    while (!NIL_P(str = bz_reader_gets_internal(arg->argc, &arg->sep,
+						arg->obj, td, in))) {
+	in = Qfalse;
 	rb_yield(str);
     }
     return Qnil;
@@ -1282,9 +1313,13 @@ bz_reader_i_readlines(arg)
     struct foreach_arg *arg;
 {
     VALUE str, res;
+    int td[ASIZE], in;
 
+    in = Qtrue;
     res = rb_ary_new();
-    while (!NIL_P(str = bz_reader_gets_internal(arg->argc, &arg->sep, arg->obj))) {
+    while (!NIL_P(str = bz_reader_gets_internal(arg->argc, &arg->sep,
+						arg->obj, td, in))) {
+	in = Qfalse;
 	rb_ary_push(res, str);
     }
     return res;
