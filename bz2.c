@@ -143,7 +143,8 @@ bz_writer_internal_flush(bzf)
 		bzf->bzs.next_out = bzf->buf;
 		bzf->bzs.avail_out = bzf->buflen;
 		bzf->state = BZ2_bzCompress(&(bzf->bzs), BZ_FINISH);
-		if (bzf->state != BZ_OK && bzf->state != BZ_STREAM_END) {
+		if (bzf->state != BZ_FINISH_OK && 
+		    bzf->state != BZ_STREAM_END) {
 		    break;
 		}
 		if (bzf->bzs.avail_out < bzf->buflen) {
@@ -151,7 +152,7 @@ bz_writer_internal_flush(bzf)
 			       rb_str_new(bzf->buf, 
 					  bzf->buflen - bzf->bzs.avail_out));
 		}
-	    } while (bzf->state == BZ_OK);
+	    } while (bzf->state != BZ_STREAM_END);
 	}
 	free(bzf->buf);
 	bzf->buf = 0;

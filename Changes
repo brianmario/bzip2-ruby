@@ -38,3 +38,7 @@
  * adapted for 1.8.0 (ihi)
  * modified ::new
  * BZ2::Writer#finish (same than #flush)
+
+--- 0.1.9
+
+ * corrected BZ_FINISH_OK (Thanks Rudi Cilibrasi <Rudi.Cilibrasi@cwi.nl>)

@@ -13,6 +13,7 @@ if unknown = enable_config("unknown")
 			  Config::expand(CONFIG["archdir"].dup))
 end
 
+dir_config('bz2')
 if !have_library('bz2', 'BZ2_bzWriteOpen')
    raise "libz2 not found"
 end
