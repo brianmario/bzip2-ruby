@@ -318,6 +318,31 @@ class TestReader < Inh::TestCase
 	 assert_equal(?A, file.getc)
       end
    end
+   
+   def test_ungets
+      data = [
+	 "00: This is a line\n",
+	 "01: This is a line\n",
+	 "02: This is a line\n",
+	 "03: This is a line\n",
+	 "04: This is a line\n",
+	 "05: This is a line\n",
+	 "06: This is a line\n",
+	 "07: This is a line\n",
+	 "08: This is a line\n",
+	 "09: This is a line\n" 
+      ]
+      count = 0
+      BZ2::Reader.open($file) do |file|
+	 assert_equal(data[count], file.gets)
+	 assert_equal(count + 1, file.lineno);
+	 assert_nil(file.ungets(data[count]))
+	 assert_equal(count, file.lineno);
+	 assert_equal(data[count], file.gets)
+	 assert_equal(count + 1, file.lineno);
+	 count += 1
+      end
+   end
 
    def test_zzz
       File.unlink($file)
@@ -326,5 +351,5 @@ end
 
 
 if defined?(RUNIT)
-   RUNIT::CUI::TestRunner.run(TestIO.suite)
+   RUNIT::CUI::TestRunner.run(TestReader.suite)
 end

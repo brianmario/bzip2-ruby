@@ -3,20 +3,23 @@
 #include <bzlib.h>
 
 static VALUE bz_cWriter, bz_cReader, bz_cInternal;
-static VALUE bz_eError, bz_eConfigError;
-static VALUE bz_eEOZError, bz_eSequenceError, bz_eParamError;
-static VALUE bz_eMemError, bz_eDataError, bz_eDataMagicError;
-static VALUE bz_eIOError, bz_eFullError;
+static VALUE bz_eError, bz_eConfigError, bz_eEOZError;
+
+static VALUE bz_internal_ary;
+
+static ID id_alloc, id_new, id_write, id_open, id_flush, id_read;
+static VALUE id_closed, id_close;
 
 #define BZ2_RB_CLOSE    1
 #define BZ2_RB_INTERNAL 2
 
 struct bz_file {
     bz_stream bzs;
-    VALUE buf, in;
-    VALUE io;
+    VALUE in, io;
+    char *buf;
+    int buflen;
     int blocks, work, small;
-    int flags, state;
+    int flags, lineno, state;
 };
 
 struct bz_str {
@@ -24,16 +27,16 @@ struct bz_str {
     int pos;
 };
 
-struct OpenFileBZ2 {
-    struct OpenFile orig;
+struct bz_iv {
+    VALUE bz2, io;
     void (*finalize)();
-    VALUE bz2;
 };
 
 #define Get_BZ2(obj, bzf)			\
+    rb_io_taint_check(obj);			\
     Data_Get_Struct(obj, struct bz_file, bzf);	\
     if (!RTEST(bzf->io)) {			\
-	rb_raise(bz_eIOError, "closed BZ2");	\
+	rb_raise(rb_eIOError, "closed IO");	\
     }
 
 static VALUE
@@ -43,29 +46,24 @@ bz_raise(error)
     VALUE exc;
     char *msg;
 
+    exc = bz_eError;
     switch (error) {
     case BZ_SEQUENCE_ERROR:
-	exc = bz_eSequenceError;
 	msg = "uncorrect sequence"; 
 	break;
     case BZ_PARAM_ERROR: 
-	exc = bz_eParamError;
-	msg = "out of range";
+	msg = "parameter out of range";
 	break;
     case BZ_MEM_ERROR: 
-	exc = bz_eMemError;
 	msg = "not enough memory is available"; 
 	break;
     case BZ_DATA_ERROR:
-	exc =  bz_eDataError;
 	msg = "data integrity error is detected";
 	break;
     case BZ_DATA_ERROR_MAGIC:
-	exc = bz_eDataMagicError; 
 	msg = "compressed stream does not start with the correct magic bytes";
 	break;
     case BZ_IO_ERROR: 
-	exc = bz_eIOError; 
 	msg = "error reading or writing"; 
 	break;
     case BZ_UNEXPECTED_EOF: 
@@ -73,7 +71,6 @@ bz_raise(error)
 	msg = "compressed file finishes before the logical end of stream is detected";
 	break;
     case BZ_OUTBUFF_FULL:
-	exc = bz_eFullError;
 	msg = "output buffer full";
 	break;
     case BZ_CONFIG_ERROR:
@@ -87,7 +84,7 @@ bz_raise(error)
     rb_raise(exc, msg);
 }
     
-static VALUE
+static void
 bz_str_mark(bzs)
     struct bz_str *bzs;
 {
@@ -99,53 +96,117 @@ bz_file_mark(bzf)
     struct bz_file *bzf;
 {
     rb_gc_mark(bzf->io);
-    rb_gc_mark(bzf->buf);
     rb_gc_mark(bzf->in);
 }
 
-static void
-bz_internal_flush(bzf)
+static struct bz_iv *
+bz_find_struct(ptr, posp)
+    OpenFile *ptr;
+    int *posp;
+{
+    struct bz_iv *bziv;
+    int i;
+
+    for (i = 0; i < RARRAY(bz_internal_ary)->len; i++) {
+	bziv = (struct bz_iv *)DATA_PTR(RARRAY(bz_internal_ary)->ptr[i]);
+	if (TYPE(bziv->io) == T_FILE && RFILE(bziv->io)->fptr == ptr) {
+	    if (posp) *posp = i;
+	    return bziv;
+	}
+    }
+    if (posp) *posp = -1;
+    return 0;
+}
+
+static int
+bz_writer_internal_flush(bzf)
     struct bz_file *bzf;
 {
-    int n, state;
+    int closed = 1;
 
-    if (bzf->buf) {
-	bzf->bzs.next_in = NULL;
-	bzf->bzs.avail_in = 0;
-	do {
-	    bzf->bzs.next_out = RSTRING(bzf->buf)->ptr;
-	    bzf->bzs.avail_out = RSTRING(bzf->buf)->len;
-	    state = BZ2_bzCompress(&(bzf->bzs), BZ_FINISH);
-	    if (bzf->bzs.avail_out < RSTRING(bzf->buf)->len) {
-		n = RSTRING(bzf->buf)->len - bzf->bzs.avail_out;
-		rb_funcall(bzf->io, rb_intern("write"), 1, 
-			   rb_str_new(RSTRING(bzf->buf)->ptr, n));
-	    }
-	} while (state != BZ_STREAM_END);
-	if (rb_respond_to(bzf->io, rb_intern("flush"))) {
-	    rb_funcall2(bzf->io, rb_intern("flush"), 0, 0);
-	}
-	BZ2_bzCompressEnd(&(bzf->bzs));
+    if (rb_respond_to(bzf->io, id_closed)) {
+	closed = RTEST(rb_funcall2(bzf->io, id_closed, 0, 0));
     }
-    bzf->buf = 0;
+    if (bzf->buf) {
+	if (!closed && bzf->state == BZ_OK) {
+	    bzf->bzs.next_in = NULL;
+	    bzf->bzs.avail_in = 0;
+	    do {
+		bzf->bzs.next_out = bzf->buf;
+		bzf->bzs.avail_out = bzf->buflen;
+		bzf->state = BZ2_bzCompress(&(bzf->bzs), BZ_FINISH);
+		if (bzf->state != BZ_OK && bzf->state != BZ_STREAM_END) {
+		    break;
+		}
+		if (bzf->bzs.avail_out < bzf->buflen) {
+		    rb_funcall(bzf->io, id_write, 1,
+			       rb_str_new(bzf->buf, 
+					  bzf->buflen - bzf->bzs.avail_out));
+		}
+	    } while (bzf->state == BZ_OK);
+	}
+	free(bzf->buf);
+	bzf->buf = 0;
+	BZ2_bzCompressEnd(&(bzf->bzs));
+	if (!closed && rb_respond_to(bzf->io, id_flush)) {
+	    rb_funcall2(bzf->io, id_flush, 0, 0);
+	}
+    }
+    return closed;
 }
 
 static void
 bz_writer_internal_close(bzf)
     struct bz_file *bzf;
 {
-    bz_internal_flush(bzf);
-    if (bzf->flags & BZ2_RB_CLOSE) {
-	if (rb_respond_to(bzf->io, rb_intern("close"))) {
-	    rb_funcall2(bzf->io, rb_intern("close"), 0, 0);
+    int closed = bz_writer_internal_flush(bzf);
+    if (TYPE(bzf->io) == T_FILE) {
+	struct bz_iv *bziv;
+	int pos;
+
+	bziv = bz_find_struct(RFILE(bzf->io)->fptr, &pos);
+	if (bziv) {
+	    RFILE(bzf->io)->fptr->finalize = bziv->finalize;
+	    RDATA(bziv->bz2)->dfree = ruby_xfree;
+	    bziv->bz2 = 0;
+	    rb_ary_delete_at(bz_internal_ary, pos);
 	}
-	bzf->flags &= ~BZ2_RB_CLOSE;
     }
-    else if (TYPE(bzf->io) == T_FILE) {
-	struct OpenFileBZ2 *bz2 = (struct OpenFileBZ2 *)RFILE(bzf->io)->fptr;
-	bz2->orig.finalize = bz2->finalize;
+    if (bzf->flags & BZ2_RB_CLOSE) {
+	bzf->flags &= ~BZ2_RB_CLOSE;
+	if (!closed && rb_respond_to(bzf->io, id_close)) {
+	    rb_funcall2(bzf->io, id_close, 0, 0);
+	}
     }
     bzf->io = Qnil;
+}
+
+static void
+bz_internal_finalize(ary)
+    VALUE ary;
+{
+    VALUE elem;
+    int closed;
+    struct bz_iv *bziv;
+    struct bz_file *bzf;
+
+    while ((elem = rb_ary_pop(bz_internal_ary)) != Qnil) {
+	Data_Get_Struct(elem, struct bz_iv, bziv);
+	if (bziv->bz2) {
+	    RDATA(bziv->bz2)->dfree = ruby_xfree;
+	    if (TYPE(bziv->io) == T_FILE) {
+		RFILE(bziv->io)->fptr->finalize = bziv->finalize;
+	    }
+	    Data_Get_Struct(bziv->bz2, struct bz_file, bzf);
+	    closed = bz_writer_internal_flush(bzf);
+	    if (bzf->flags & BZ2_RB_CLOSE) {
+		bzf->flags &= ~BZ2_RB_CLOSE;
+		if (!closed && rb_respond_to(bzf->io, id_close)) {
+		    rb_funcall2(bzf->io, id_close, 0, 0);
+		}
+	    }
+	}
+    }
 }
 
 static VALUE
@@ -153,19 +214,14 @@ bz_writer_close(obj)
     VALUE obj;
 {
     struct bz_file *bzf;
-    int internal;
-    VALUE res;
+    VALUE res = Qnil;
 
     Get_BZ2(obj, bzf);
-    internal = bzf->flags & BZ2_RB_INTERNAL;
-    if (internal) {
+    if (bzf->flags & BZ2_RB_INTERNAL) {
 	res = bzf->io;
     }
     bz_writer_internal_close(bzf);
-    if (internal) {
-	return res;
-    }
-    return Qnil;
+    return res;
 }
 
 static void
@@ -177,27 +233,33 @@ bz_writer_free(bzf)
 }
 
 static void
-bz_file_finalize(bz2)
-    struct OpenFileBZ2 *bz2;
+bz_io_finalize(file)
+    OpenFile *file;
 {
     struct bz_file *bzf;
+    struct bz_iv *bziv;
+    int pos;
 
-    Get_BZ2(bz2->bz2, bzf);
-    bz_internal_flush(bzf);
-    ruby_xfree(bzf);
-    RDATA(bz2->bz2)->dfree = 0;
-    if (bz2->finalize) {
-	(*bz2->finalize)(bz2->orig);
-    }
-    else {
-	if (bz2->orig.f) {
-	    fclose(bz2->orig.f);
+    bziv = bz_find_struct(file, &pos);
+    if (bziv) {
+	rb_ary_delete_at(bz_internal_ary, pos);
+	Data_Get_Struct(bziv->bz2, struct bz_file, bzf);
+	bz_writer_internal_flush(bzf);
+	RDATA(bziv->bz2)->dfree = ruby_xfree;
+	if (bziv->finalize) {
+	    (*bziv->finalize)(file);
 	}
-	if (bz2->orig.f2) {
-	    fclose(bz2->orig.f2);
+	else {
+	    if (file->f) {
+		fclose(file->f);
+		file->f = 0;
+	    }
+	    if (file->f2) {
+		fclose(file->f2);
+		file->f2 = 0;
+	    }
 	}
     }
-    bz2->orig.finalize = bz2->finalize = 0;
 }
 
 static void *
@@ -228,6 +290,7 @@ bz_writer_s_alloc(obj)
     bzf->bzs.bzalloc = bz_malloc;
     bzf->bzs.bzfree = bz_free;
     bzf->blocks = DEFAULT_BLOCKS;
+    bzf->state = BZ_OK;
     return res;
 }
 
@@ -241,7 +304,7 @@ bz_writer_flush(obj)
     if (bzf->flags & BZ2_RB_INTERNAL) {
 	return bz_writer_close(obj);
     }
-    bz_internal_flush(bzf);
+    bz_writer_internal_flush(bzf);
     return Qnil;
 }
 
@@ -250,12 +313,8 @@ bz_writer_s_new(argc, argv, obj)
     int argc;
     VALUE obj, *argv;
 {
-    VALUE res = rb_funcall2(obj, rb_intern("allocate"), 0, 0);
+    VALUE res = rb_funcall2(obj, id_alloc, 0, 0);
     rb_obj_call_init(res, argc, argv);
-    if (rb_block_given_p()) {
-	rb_ensure(rb_yield, res, bz_writer_close, res);
-	return Qnil;
-    }
     return res;
 }
 
@@ -271,21 +330,20 @@ bz_writer_s_open(argc, argv, obj)
 	rb_raise(rb_eArgError, "invalid number of arguments");
     }
     if (argc == 1) {
-	argv[0] = rb_funcall(rb_mKernel, rb_intern("open"), 2, argv[0], 
+	argv[0] = rb_funcall(rb_mKernel, id_open, 2, argv[0], 
 			     rb_str_new2("wb"));
     }
     else {
-	argv[1] = rb_funcall2(rb_mKernel, rb_intern("open"), 2, argv);
+	argv[1] = rb_funcall2(rb_mKernel, id_open, 2, argv);
 	argv += 1;
 	argc -= 1;
     }
-    res = rb_funcall2(obj, rb_intern("allocate"), 0, 0);
+    res = rb_funcall2(obj, id_alloc, 0, 0);
     Data_Get_Struct(res, struct bz_file, bzf);
     bzf->flags |= BZ2_RB_CLOSE;
     rb_obj_call_init(res, argc, argv);
     if (rb_block_given_p()) {
-	rb_ensure(rb_yield, res, bz_writer_close, res);
-	return Qnil;
+	return rb_ensure(rb_yield, res, bz_writer_close, res);
     }
     return res;
 }
@@ -326,21 +384,34 @@ bz_writer_init(argc, argv, obj)
 	rb_define_method(rb_singleton_class(a), "write", bz_str_write, 1);
 	bzf->flags |= BZ2_RB_INTERNAL;
     }
-    if (!rb_respond_to(a, rb_intern("write"))) {
-	rb_raise(rb_eArgError, "first argument must respond to #write");
-    }
-    if (!(bzf->flags & BZ2_RB_CLOSE) && TYPE(a) == T_FILE) {
-	OpenFile *fp;
-	struct OpenFileBZ2 *bz2;
+    else {
+	rb_io_taint_check(a);
+	if (!rb_respond_to(a, id_write)) {
+	    rb_raise(rb_eArgError, "first argument must respond to #write");
+	}
+	if (TYPE(a) == T_FILE) {
+	    VALUE iv;
+	    struct bz_iv *bziv;
+	    OpenFile *fptr;
 
-	GetOpenFile(a, fp);
-	bz2 = ALLOC(struct OpenFileBZ2);
-	MEMCPY(&(bz2->orig), RFILE(a)->fptr, OpenFile, 1);
-	bz2->finalize = RFILE(a)->fptr->finalize;
-	bz2->bz2 = obj;
-	bz2->orig.finalize = bz_file_finalize;
-	ruby_xfree(RFILE(a)->fptr);
-	RFILE(a)->fptr = (OpenFile *)bz2;
+	    GetOpenFile(a, fptr);
+	    rb_io_check_writable(fptr);
+	    bziv = bz_find_struct(RFILE(a)->fptr, 0);
+	    if (bziv) {
+		if (RTEST(bziv->bz2)) {
+		    rb_raise(rb_eArgError, "invalid data type");
+		}
+		bziv->bz2 = obj;
+	    }
+	    else {
+		iv = Data_Make_Struct(rb_cData, struct bz_iv, 0, free, bziv);
+		bziv->io = a;
+		bziv->bz2 = obj;
+		rb_ary_push(bz_internal_ary, iv);
+	    }
+	    bziv->finalize = RFILE(a)->fptr->finalize;
+	    RFILE(a)->fptr->finalize = bz_io_finalize;
+	}
     }
     bzf->io = a;
     bzf->blocks = blocks;
@@ -348,35 +419,45 @@ bz_writer_init(argc, argv, obj)
     return obj;
 }
 
+#define BZ_RB_BLOCKSIZE 4096
+
 static VALUE
 bz_writer_write(obj, a)
     VALUE obj, a;
 {
     struct bz_file *bzf;
-    int n, status;
+    int n;
 
     a = rb_obj_as_string(a);
     Get_BZ2(obj, bzf);
     if (!bzf->buf) {
-	status = BZ2_bzCompressInit(&(bzf->bzs), bzf->blocks, 0, bzf->work);
-	if (status != BZ_OK) {
-	    bz_raise(status);
+	if (bzf->state != BZ_OK) {
+	    bz_raise(bzf->state);
 	}
-	bzf->buf = rb_str_new(0, 4096);
+	bzf->state = BZ2_bzCompressInit(&(bzf->bzs), bzf->blocks,
+					0, bzf->work);
+	if (bzf->state != BZ_OK) {
+	    bz_writer_internal_flush(bzf);
+	    bz_raise(bzf->state);
+	}
+	bzf->buf = ALLOC_N(char, BZ_RB_BLOCKSIZE + 1);
+	bzf->buflen = BZ_RB_BLOCKSIZE;
+	bzf->buf[0] = bzf->buf[bzf->buflen] = '\0';
     }
     bzf->bzs.next_in = RSTRING(a)->ptr;
     bzf->bzs.avail_in = RSTRING(a)->len;
     while (bzf->bzs.avail_in) {
-	bzf->bzs.next_out = RSTRING(bzf->buf)->ptr;
-	bzf->bzs.avail_out = RSTRING(bzf->buf)->len;
-	status = BZ2_bzCompress(&(bzf->bzs), BZ_RUN);
-	if (status == BZ_SEQUENCE_ERROR || status == BZ_PARAM_ERROR) {
-	    bz_raise(status);
+	bzf->bzs.next_out = bzf->buf;
+	bzf->bzs.avail_out = bzf->buflen;
+	bzf->state = BZ2_bzCompress(&(bzf->bzs), BZ_RUN);
+	if (bzf->state == BZ_SEQUENCE_ERROR || bzf->state == BZ_PARAM_ERROR) {
+	    bz_writer_internal_flush(bzf);
+	    bz_raise(bzf->state);
 	}
-	if (bzf->bzs.avail_out < RSTRING(bzf->buf)->len) {
-	    n = RSTRING(bzf->buf)->len - bzf->bzs.avail_out;
-	    rb_funcall(bzf->io, rb_intern("write"), 1, 
-		       rb_str_new2(RSTRING(bzf->buf)->ptr), n);
+	bzf->state = BZ_OK;
+	if (bzf->bzs.avail_out < bzf->buflen) {
+	    n = bzf->buflen - bzf->bzs.avail_out;
+	    rb_funcall(bzf->io, id_write, 1, rb_str_new(bzf->buf, n), n);
 	}
     }
     return INT2NUM(RSTRING(a)->len);
@@ -403,7 +484,7 @@ bz_compress(argc, argv, obj)
     Check_Type(argv[0], T_STRING);
     str = argv[0];
     argv[0] = Qnil;
-    bz2 = rb_funcall2(bz_cWriter, rb_intern("new"), argc, argv);
+    bz2 = rb_funcall2(bz_cWriter, id_new, argc, argv);
     bz_writer_write(bz2, str);
     return bz_writer_close(bz2);
 }
@@ -412,7 +493,15 @@ static VALUE
 bz_reader_s_alloc(obj)
     VALUE obj;
 {
-    return bz_writer_s_alloc(obj);
+    struct bz_file *bzf;
+    VALUE res;
+    res = Data_Make_Struct(obj, struct bz_file, bz_file_mark, 
+			   ruby_xfree, bzf);
+    bzf->bzs.bzalloc = bz_malloc;
+    bzf->bzs.bzfree = bz_free;
+    bzf->blocks = DEFAULT_BLOCKS;
+    bzf->state = BZ_OK;
+    return res;
 }
 
 static VALUE
@@ -420,7 +509,7 @@ bz_reader_s_new(argc, argv, obj)
     int argc;
     VALUE obj, *argv;
 {
-    VALUE res = rb_funcall2(obj, rb_intern("allocate"), 0, 0);
+    VALUE res = rb_funcall2(obj, id_alloc, 0, 0);
     rb_obj_call_init(res, argc, argv);
     return res;
 }
@@ -438,14 +527,13 @@ bz_reader_s_open(argc, argv, obj)
     if (argc < 1) {
 	rb_raise(rb_eArgError, "invalid number of arguments");
     }
-    argv[0] = rb_funcall(rb_mKernel, rb_intern("open"), 1, argv[0]);
+    argv[0] = rb_funcall2(rb_mKernel, id_open, 1, argv);
     if (NIL_P(argv[0])) return Qnil;
-    res = rb_funcall2(obj, rb_intern("new"), argc, argv);
+    res = rb_funcall2(obj, id_new, argc, argv);
     Data_Get_Struct(res, struct bz_file, bzf);
     bzf->flags |= BZ2_RB_CLOSE;
     if (rb_block_given_p()) {
-	rb_ensure(rb_yield, res, bz_reader_close, res);
-	return Qnil;
+	return rb_ensure(rb_yield, res, bz_reader_close, res);
     }
     return res;
 }
@@ -472,8 +560,17 @@ bz_reader_init(argc, argv, obj)
 	a = res;
 	internal = BZ2_RB_INTERNAL;
     }
-    if (!rb_respond_to(a, rb_intern("read"))) {
-	rb_raise(rb_eArgError, "first argument must respond to #read");
+    else {
+	rb_io_taint_check(a);
+	if (!rb_respond_to(a, id_read)) {
+	    rb_raise(rb_eArgError, "first argument must respond to #read");
+	}
+	if (TYPE(a) == T_FILE) {
+	    OpenFile *fptr;
+
+	    GetOpenFile(a, fptr);
+	    rb_io_check_readable(fptr);
+	}
     }
     Data_Get_Struct(obj, struct bz_file, bzf);
     bzf->io = a;
@@ -504,18 +601,22 @@ bz_reader_read(argc, argv, obj)
     }
     Get_BZ2(obj, bzf);
     if (!bzf->buf) {
-	int status = BZ2_bzDecompressInit(&(bzf->bzs), 0, bzf->small);
-	if (status != BZ_OK) {
-	    bz_raise(status);
+	if (bzf->state != BZ_OK) {
+	    bz_raise(bzf->state);
 	}
-	bzf->state = 0;
-	bzf->buf = rb_str_new(0, 4096);
+	bzf->state = BZ2_bzDecompressInit(&(bzf->bzs), 0, bzf->small);
+	if (bzf->state != BZ_OK) {
+	    BZ2_bzDecompressEnd(&(bzf->bzs));
+	    bz_raise(bzf->state);
+	}
+	bzf->buf = ALLOC_N(char, BZ_RB_BLOCKSIZE + 1);
+	bzf->buflen = BZ_RB_BLOCKSIZE;
+	bzf->buf[0] = bzf->buf[bzf->buflen] = '\0';
 	bzf->bzs.total_out_hi32 = bzf->bzs.total_out_lo32 = 0;
-	bzf->bzs.next_out = RSTRING(bzf->buf)->ptr;
-	bzf->bzs.avail_out = RSTRING(bzf->buf)->len;
+	bzf->bzs.next_out = bzf->buf;
+	bzf->bzs.avail_out = 0;
     }
-    if (bzf->state == BZ_STREAM_END && 
-	bzf->bzs.avail_out == RSTRING(bzf->buf)->len) {
+    if (bzf->state == BZ_STREAM_END && !bzf->bzs.avail_out) {
 	return Qnil;
     }
     res = rb_str_new(0, 0);
@@ -523,38 +624,44 @@ bz_reader_read(argc, argv, obj)
 	return res;
     }
     while (1) {
-	total = RSTRING(bzf->buf)->len - bzf->bzs.avail_out;
+	total = bzf->bzs.avail_out;
 	if (n != -1 && (RSTRING(res)->len + total) >= n) {
 	    n -= RSTRING(res)->len;
-	    res = rb_str_cat(res, bzf->bzs.next_out - total, n);
-	    MEMMOVE(bzf->bzs.next_out - total,
-		   bzf->bzs.next_out - total + n, char,
-		   total - n);
-	    bzf->bzs.next_out -= n;
-	    bzf->bzs.avail_out += n;
+	    res = rb_str_cat(res, bzf->bzs.next_out, n);
+	    bzf->bzs.next_out += n;
+	    bzf->bzs.avail_out -= n;
 	    return res;
 	}
 	if (total) {
-	    res = rb_str_cat(res, bzf->bzs.next_out - total, total);
+	    res = rb_str_cat(res, bzf->bzs.next_out, total);
 	}
-	bzf->bzs.total_out_hi32 = bzf->bzs.total_out_lo32 = 0;
-	bzf->bzs.next_out = RSTRING(bzf->buf)->ptr;
-	bzf->bzs.avail_out = RSTRING(bzf->buf)->len;
+	bzf->bzs.next_out = bzf->buf;
+	bzf->bzs.avail_out = 0;
 	if (bzf->state == BZ_STREAM_END) {
 	    return res;
 	}
 	if (!bzf->bzs.avail_in) {
-	    bzf->in = rb_funcall(bzf->io, rb_intern("read"), 1, INT2FIX(1024));
-	    if (TYPE(bzf->in) != T_STRING || RSTRING(bzf->in) == 0) {
-		bz_raise(BZ_UNEXPECTED_EOF);
+	    bzf->in = rb_funcall(bzf->io, id_read, 1, INT2FIX(1024));
+	    if (TYPE(bzf->in) != T_STRING || RSTRING(bzf->in)->len == 0) {
+		BZ2_bzDecompressEnd(&(bzf->bzs));
+		bzf->bzs.avail_out = 0;
+		bzf->state = BZ_UNEXPECTED_EOF;
+		bz_raise(bzf->state);
 	    }
 	    bzf->bzs.next_in = RSTRING(bzf->in)->ptr;
 	    bzf->bzs.avail_in = RSTRING(bzf->in)->len;
 	}
+	bzf->bzs.avail_out = bzf->buflen;
 	bzf->state = BZ2_bzDecompress(&(bzf->bzs));
-	if (bzf->state != BZ_OK && bzf->state != BZ_STREAM_END) {
-	    bz_raise(bzf->state);
-	}    
+	if (bzf->state != BZ_OK) {
+	    BZ2_bzDecompressEnd(&(bzf->bzs));
+	    if (bzf->state != BZ_STREAM_END) {
+		bzf->bzs.avail_out = 0;
+		bz_raise(bzf->state);
+	    }
+	}
+	bzf->bzs.avail_out = bzf->buflen - bzf->bzs.avail_out;
+	bzf->bzs.next_out = bzf->buf;
     }
     return Qnil;
 }
@@ -582,18 +689,58 @@ bz_reader_ungetc(obj, a)
     if (!bzf->buf) {
 	bz_raise(BZ_SEQUENCE_ERROR);
     }
-    if (bzf->bzs.avail_out) {
-	MEMMOVE(RSTRING(bzf->buf)->ptr + 1, RSTRING(bzf->buf)->ptr, char,
-		RSTRING(bzf->buf)->len - bzf->bzs.avail_out);
-	RSTRING(bzf->buf)->ptr[0] = c;
-	bzf->bzs.next_out += 1;
-	bzf->bzs.avail_out -= 1;
+    if (bzf->bzs.avail_out < bzf->buflen) {
+	bzf->bzs.next_out -= 1;
+	bzf->bzs.next_out[0] = c;
+	bzf->bzs.avail_out += 1;
     }
     else {
-	VALUE tmp = rb_str_new((unsigned char *)&c, 1);
-	bzf->buf = rb_str_cat(tmp, RSTRING(bzf->buf)->ptr, 
-			      RSTRING(bzf->buf)->len);
+	bzf->buf = REALLOC_N(bzf->buf, char, bzf->buflen + 2);
+	bzf->buf[bzf->buflen++] = c;
+	bzf->buf[bzf->buflen] = '\0';
+	bzf->bzs.next_out = bzf->buf;
+	bzf->bzs.avail_out = bzf->buflen;
     }
+    return Qnil;
+}
+
+static VALUE
+bz_reader_ungets(obj, a)
+    VALUE obj, a;
+{
+    struct bz_file *bzf;
+    char *start, *end;
+
+    Check_Type(a, T_STRING);
+    Get_BZ2(obj, bzf);
+    if (!bzf->buf) {
+	bz_raise(BZ_SEQUENCE_ERROR);
+    }
+
+    start = RSTRING(a)->ptr;
+    end = start + RSTRING(a)->len;
+    while (start < end) {
+	if ('\n' == (*start++ & 0xff)) {
+	    bzf->lineno--;
+	}
+    }
+    if (bzf->lineno < 0) {
+	bzf->lineno = 0;
+    }
+
+    if ((bzf->bzs.avail_out + RSTRING(a)->len) < bzf->buflen) {
+	bzf->bzs.next_out -= RSTRING(a)->len;
+	MEMCPY(bzf->bzs.next_out, RSTRING(a)->ptr, char, RSTRING(a)->len);
+	bzf->bzs.avail_out += RSTRING(a)->len;
+    }
+    else {
+	bzf->buf = REALLOC_N(bzf->buf, char, bzf->buflen + RSTRING(a)->len + 1);
+	MEMCPY(bzf->buf + bzf->buflen, RSTRING(a)->ptr, char,RSTRING(a)->len);
+	bzf->buflen += RSTRING(a)->len;
+	bzf->buf[bzf->buflen] = '\0';
+	bzf->bzs.next_out = bzf->buf;
+	bzf->bzs.avail_out = bzf->buflen;
+     }
     return Qnil;
 }
 
@@ -637,6 +784,10 @@ bz_reader_gets(obj)
 
   return_gets:
     if (!NIL_P(str)) {
+	struct bz_file *bzf;
+
+	Data_Get_Struct(obj, struct bz_file, bzf);
+	bzf->lineno++;
 	OBJ_TAINT(str);
     }
 
@@ -761,6 +912,10 @@ bz_reader_gets_internal(argc, argv, obj)
     }
 
     if (!NIL_P(str)) {
+	struct bz_file *bzf;
+
+	Data_Get_Struct(obj, struct bz_file, bzf);
+	bzf->lineno++;
 	OBJ_TAINT(str);
     }
 
@@ -768,7 +923,7 @@ bz_reader_gets_internal(argc, argv, obj)
 }
 
 static VALUE
-bz_reader_unused_set(obj, a)
+bz_reader_set_unused(obj, a)
     VALUE obj, a;
 {
     struct bz_file *bzf;
@@ -895,8 +1050,7 @@ bz_reader_unused(obj)
 	return Qnil;
     }
     if (bzf->bzs.avail_in) {
-	res = rb_tainted_str_new(bzf->bzs.next_in, 
-				 RSTRING(bzf->in)->len - bzf->bzs.avail_in);
+	res = rb_tainted_str_new(bzf->bzs.next_in, bzf->bzs.avail_in);
 	bzf->bzs.avail_in = 0;
     }
     else {
@@ -915,8 +1069,7 @@ bz_reader_eoz(obj)
     if (!bzf->in || !bzf->buf) {
 	return Qnil;
     }
-    if (bzf->state == BZ_STREAM_END && 
-	bzf->bzs.avail_out == RSTRING(bzf->buf)->len) {
+    if (bzf->state == BZ_STREAM_END && !bzf->bzs.avail_out) {
 	return Qtrue;
     }
     return Qfalse;
@@ -966,10 +1119,17 @@ bz_reader_close(obj)
     struct bz_file *bzf;
 
     Get_BZ2(obj, bzf);
-    if (rb_respond_to(bzf->io, rb_intern("close"))) {
-	rb_funcall2(bzf->io, rb_intern("close"), 0, 0);
+    if (bzf->buf) {
+	free(bzf->buf);
+	bzf->buf = 0;
     }
-    bzf->io = bzf->buf = 0;
+    if (bzf->state == BZ_OK) {
+	BZ2_bzDecompressEnd(&(bzf->bzs));
+    }
+    if (rb_respond_to(bzf->io, id_close)) {
+	rb_funcall2(bzf->io, id_close, 0, 0);
+    }
+    bzf->io = 0;
     return Qnil;
 }
 
@@ -984,7 +1144,8 @@ bz_reader_close_m(argc, argv, obj)
     if (rb_scan_args(argc, argv, "01", &end) && !RTEST(end)) {
 	Get_BZ2(obj, bzf);
 	if (bzf->buf) {
-	    rb_funcall2(obj, rb_intern("read"), 0, 0);
+	    rb_funcall2(obj, id_read, 0, 0);
+	    free(bzf->buf);
 	}
 	bzf->buf = 0;
 	return Qnil;
@@ -1025,9 +1186,9 @@ bz_reader_s_foreach(argc, argv, obj)
     Check_SafeStr(fname);
     arg.argc = argc - 1;
     arg.sep = sep;
-    arg.obj = rb_funcall2(rb_mKernel, rb_intern("open"), 1, &fname);
+    arg.obj = rb_funcall2(rb_mKernel, id_open, 1, &fname);
     if (NIL_P(arg.obj)) return Qnil;
-    arg.obj = rb_funcall2(obj, rb_intern("new"), 1, &arg.obj);
+    arg.obj = rb_funcall2(obj, id_new, 1, &arg.obj);
     return rb_ensure(bz_reader_foreach_line, (VALUE)&arg, bz_reader_close, arg.obj);
 }
 
@@ -1056,22 +1217,53 @@ bz_reader_s_readlines(argc, argv, obj)
     Check_SafeStr(fname);
     arg.argc = argc - 1;
     arg.sep = sep;
-    arg.obj = rb_funcall2(rb_mKernel, rb_intern("open"), 1, &fname);
+    arg.obj = rb_funcall2(rb_mKernel, id_open, 1, &fname);
     if (NIL_P(arg.obj)) return Qnil;
-    arg.obj = rb_funcall2(obj, rb_intern("new"), 1, &arg.obj);
+    arg.obj = rb_funcall2(obj, id_new, 1, &arg.obj);
     return rb_ensure(bz_reader_i_readlines, (VALUE)&arg, bz_reader_close, arg.obj);
 }
 
 static VALUE
-bz_str_read(obj, len)
-    VALUE obj, len;
+bz_reader_lineno(obj)
+    VALUE obj;
+{
+    struct bz_file *bzf;
+
+    Get_BZ2(obj, bzf);
+    return INT2NUM(bzf->lineno);
+}
+
+static VALUE
+bz_reader_set_lineno(obj, lineno)
+    VALUE obj, lineno;
+{
+    struct bz_file *bzf;
+
+    Get_BZ2(obj, bzf);
+    bzf->lineno = NUM2INT(lineno);
+    return lineno;
+}
+
+static VALUE
+bz_str_read(argc, argv, obj)
+    int argc;
+    VALUE obj, *argv;
 {
     struct bz_str *bzs;
-    VALUE res;
+    VALUE res, len;
     int count;
     
-    count = NUM2INT(len);
     Data_Get_Struct(obj, struct bz_str, bzs);
+    rb_scan_args(argc, argv, "01", &len);
+    if (NIL_P(len)) {
+	count = RSTRING(bzs->str)->len;
+    }
+    else {
+	count = NUM2INT(len);
+	if (count < 0) {
+	    rb_raise(rb_eArgError, "negative length %d given", count);
+	}
+    }
     if (!count || bzs->pos == -1) {
 	return Qnil;
     }
@@ -1098,7 +1290,7 @@ bz_uncompress(argc, argv, obj)
 	rb_raise(rb_eArgError, "need a String to Uncompress");
     }
     Check_Type(argv[0], T_STRING);
-    bz2 = rb_funcall2(bz_cReader, rb_intern("new"), argc, argv);
+    bz2 = rb_funcall2(bz_cReader, id_new, argc, argv);
     return bz_reader_read(1, &nilv, bz2);
 }
 
@@ -1106,19 +1298,31 @@ void Init_bz2()
 {
     VALUE bz_mBZ2;
 
+    if (rb_const_defined_at(rb_cObject, rb_intern("BZ2"))) {
+	rb_raise(rb_eNameError, "module already defined");
+    }
+
+    bz_internal_ary = rb_ary_new();
+    rb_set_end_proc(bz_internal_finalize, bz_internal_ary);
+
+    id_alloc = rb_intern("allocate");
+    id_new = rb_intern("new");
+    id_write = rb_intern("write");
+    id_open = rb_intern("open");
+    id_flush = rb_intern("flush");
+    id_read = rb_intern("read");
+    id_close = rb_intern("close");
+    id_closed = rb_intern("closed?");
+
     bz_mBZ2 = rb_define_module("BZ2");
-    bz_eError = rb_define_class_under(bz_mBZ2, "Error", rb_eIOError);
     bz_eConfigError = rb_define_class_under(bz_mBZ2, "ConfigError", rb_eFatal);
+    bz_eError = rb_define_class_under(bz_mBZ2, "Error", rb_eIOError);
     bz_eEOZError = rb_define_class_under(bz_mBZ2, "EOZError", bz_eError);
-    bz_eSequenceError = rb_define_class_under(bz_mBZ2, "SequenceError", bz_eError);
-    bz_eParamError = rb_define_class_under(bz_mBZ2, "ParamError", bz_eError);
-    bz_eMemError = rb_define_class_under(bz_mBZ2, "MemError", bz_eError);
-    bz_eDataError = rb_define_class_under(bz_mBZ2, "DataError", bz_eError);
-    bz_eDataMagicError = rb_define_class_under(bz_mBZ2, "DataMagicError", bz_eError);
-    bz_eIOError = rb_define_class_under(bz_mBZ2, "IOError", bz_eError);
-    bz_eFullError = rb_define_class_under(bz_mBZ2, "OutBuffFullError", bz_eError);
+
     rb_define_module_function(bz_mBZ2, "compress", bz_compress, -1);
     rb_define_module_function(bz_mBZ2, "uncompress", bz_uncompress, -1);
+    rb_define_module_function(bz_mBZ2, "bzip2", bz_compress, -1);
+    rb_define_module_function(bz_mBZ2, "bunzip2", bz_uncompress, -1);
     /*
       Writer
     */
@@ -1148,8 +1352,9 @@ void Init_bz2()
     rb_define_method(bz_cReader, "initialize", bz_reader_init, -1);
     rb_define_method(bz_cReader, "read", bz_reader_read, -1);
     rb_define_method(bz_cReader, "unused", bz_reader_unused, 0);
-    rb_define_method(bz_cReader, "unused=", bz_reader_unused_set, 1);
+    rb_define_method(bz_cReader, "unused=", bz_reader_set_unused, 1);
     rb_define_method(bz_cReader, "ungetc", bz_reader_ungetc, 1);
+    rb_define_method(bz_cReader, "ungets", bz_reader_ungets, 1);
     rb_define_method(bz_cReader, "getc", bz_reader_getc, 0);
     rb_define_method(bz_cReader, "gets", bz_reader_gets_m, -1);
     rb_define_method(bz_cReader, "readchar", bz_reader_readchar, 0);
@@ -1165,6 +1370,8 @@ void Init_bz2()
     rb_define_method(bz_cReader, "eoz", bz_reader_eoz, 0);
     rb_define_method(bz_cReader, "eof?", bz_reader_eof, 0);
     rb_define_method(bz_cReader, "eof", bz_reader_eof, 0);
+    rb_define_method(bz_cReader, "lineno", bz_reader_lineno, 0);
+    rb_define_method(bz_cReader, "lineno=", bz_reader_set_lineno, 1);
     /*
       Internal
     */
@@ -1172,5 +1379,5 @@ void Init_bz2()
     rb_undef_method(CLASS_OF(bz_cInternal), "new");
     rb_undef_method(CLASS_OF(bz_cInternal), "allocate");
     rb_undef_method(bz_cInternal, "initialize");
-    rb_define_method(bz_cInternal, "read", bz_str_read, 1);
+    rb_define_method(bz_cInternal, "read", bz_str_read, -1);
 }

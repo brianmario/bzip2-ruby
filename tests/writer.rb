@@ -29,6 +29,18 @@ class TestWriter < Inh::TestCase
       assert_equal([], expected)
    end
 
+   def test_error
+      io = File.new($file, "w")
+      bz2 = BZ2::Writer.new(io)
+      bz2 << 1 << "\n" << Dummy.new << "\n" << "cat\n"
+      bz = BZ2::Reader.new($file)
+      assert_raises(BZ2::Error) { bz.gets }
+      bz = BZ2::Reader.open($file)
+      assert_raises(BZ2::EOZError) { bz.gets }
+      io.close
+      assert_raises(IOError) { BZ2::Reader.new(io) }
+   end
+
    def test_gets_para
       BZ2::Writer.open($file) do |file|
 	 file.print "foo\n"*4096, "\n"*4096, "bar"*4096, "\n"*4096, "zot\n"*1024
@@ -39,6 +51,7 @@ class TestWriter < Inh::TestCase
 	 assert_equal("zot\n"*1024, file.gets(""))
       end
    end
+
    def test_print
       BZ2::Writer.open($file) do |file|
 	 file.print "hello"
@@ -107,7 +120,7 @@ class TestWriter < Inh::TestCase
 end
 
 if defined?(RUNIT)
-   RUNIT::CUI::TestRunner.run(TestIO.suite)
+   RUNIT::CUI::TestRunner.run(TestWriter.suite)
 end
 
 

@@ -1,0 +1,11 @@
+
+--- 0.1.1
+
+ * better interface for T_FILE
+ * corrected bug with gc (buf)
+ * Reader#lineno, Reader#lineno=, Reader#ungets
+ * corrected Reader#unused
+ * taint check in #initialize
+ * BZ2::bzip2, BZ2::bunzip2
+ * too many exceptions 
+

@@ -1,6 +1,6 @@
 =begin
 #^
-bz2 is an extension to use bunzip2 from ruby
+bz2 is an extension to use libbzip2 from ruby
 #^
 
 #
@@ -8,6 +8,7 @@ bz2 is an extension to use bunzip2 from ruby
 #
 === Module function
 
+--- bzip2(str, blocks = 9, work = 0)
 --- compress(str, blocks = 9, work = 0)
     Compress the String ((|str|))
 
@@ -19,6 +20,7 @@ bz2 is an extension to use bunzip2 from ruby
     with worst case, highly repetitive, input data.Allowable values range 
     from 0 to 250 inclusive
 
+--- bunzip2(str, small = Qfalse)
 --- uncompress(str, small = Qfalse)
     Uncompress the String ((|str|))
 
@@ -95,6 +97,8 @@ bz2 is an extension to use bunzip2 from ruby
 
 == BZ2::Reader
 
+ Included modules : Enumerable
+
 === Class methods
 
 --- allocate
@@ -108,7 +112,7 @@ bz2 is an extension to use bunzip2 from ruby
     With no associated block, open is a synonym for BZ2::Reader::new. If the
     optional code block is given, it will be passed file as an
     argument, and the file will automatically be closed when the block
-    terminates. In this instance, BZ2::Reader::open returns nil.
+    terminates.
 
 --- readlines(filename, separator = $/)
     Uncompress the file and reads the entire file as individual lines,
@@ -154,6 +158,12 @@ bz2 is an extension to use bunzip2 from ruby
     Reads the next line; lines are separated by ((|separator|)).
     Returns nil if called at end of file.
 
+--- lineno
+    Return the current line number
+
+--- lineno=(num)
+    Manually sets the current line number to the given value
+
 --- read(number)
     Read at most ((|number|)) characters
     Returns nil if called at end of file
@@ -168,6 +178,9 @@ bz2 is an extension to use bunzip2 from ruby
 
 --- ungetc(char)
     Push back one character
+
+--- ungets(str)
+    Push back the string
 
 --- unused
     Return the String read by ((|BZ2::Reader|)) but not used in the 
@@ -187,10 +200,10 @@ bz2 is an extension to use bunzip2 from ruby
   Indicates that the library has been improperly compiled on your platform
 # end
 
-# # the superclass for all exceptions (except BZ2::ConfigError) raised by BZ2
+# # Exception raised by BZ2
 # class Error < ::IOError
 === BZ2::Error < ::IOError
- the superclass for all exceptions (except BZ2::ConfigError) raised by BZ2
+ Exception raised by BZ2
 # end
 
 # # "End of Zip" exception : compressed file finishes before the logical 
@@ -199,48 +212,6 @@ bz2 is an extension to use bunzip2 from ruby
 === BZ2::EOZError < BZ2::Error
  "End of Zip" exception : compressed file finishes before the logical 
   end of stream is detected
-# end
-
-# # exception handled when an uncorrect sequence is detected (internal error)
-# class SequenceError < Error
-=== BZ2::SequenceError < BZ2::Error
- exception handled when an uncorrect sequence is detected (internal error)
-# end
-
-# # out of range for a parameter
-# class ParamError < Error
-=== BZ2::ParamError < BZ2::Error
- out of range for a parameter
-# end
-
-# # not enough memory is available
-# class MemError < Error
-=== BZ2::MemError < BZ2::Error
- not enough memory is available
-# end
-
-# # data integrity error is detected
-# class DataError < Error
-=== BZ2::DataError < BZ2::Error
- data integrity error is detected
-# end
-
-# # compressed stream does not start with the correct magic bytes
-# class DataMagicError < Error
-=== BZ2::DataMagicError < BZ2::Error
- compressed stream does not start with the correct magic bytes
-# end
-
-# # error reading or writing
-# class IOError < Error
-=== BZ2::IOError < BZ2::Error
- error reading or writing
-# end
-
-# # output buffer full
-# class OutBuffFullError < Error
-=== BZ2::OutBuffFullError < BZ2::Error
- output buffer full
 # end
 # end
 

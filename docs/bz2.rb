@@ -1,4 +1,4 @@
-# bz2 is an extension to use bunzip2 from ruby
+# bz2 is an extension to use libbzip2 from ruby
 module BZ2
 
 #Compress the String <em>str</em>
@@ -11,6 +11,9 @@ module BZ2
 #with worst case, highly repetitive, input data.Allowable values range 
 #from 0 to 250 inclusive
 #
+def  bzip2(str, blocks = 9, work = 0)
+end
+#same than <em> bzip2</em>
 def  compress(str, blocks = 9, work = 0)
 end
 
@@ -20,6 +23,9 @@ end
 #decompression algorithm which uses less memory but at the cost of
 #decompressing more slowly
 #
+def  bunzip2(str, small = Qfalse)
+end
+#same than <em> bunzip2</em>
 def  uncompress(str, small = Qfalse)
 end
 # The class for compressing data
@@ -118,7 +124,7 @@ end
 #With no associated block, open is a synonym for BZ2::Reader::new. If the
 #optional code block is given, it will be passed file as an
 #argument, and the file will automatically be closed when the block
-#terminates. In this instance, BZ2::Reader::open returns nil.
+#terminates.
 #
 def  open(filename)
 end
@@ -187,6 +193,16 @@ end
 def  gets(separator = $/)
 end
 
+#Return the current line number
+#
+def  lineno
+end
+
+#Manually sets the current line number to the given value
+#
+def  lineno=(num)
+end
+
 #Read at most <em>number</em> characters
 #Returns nil if called at end of file
 #
@@ -210,6 +226,11 @@ end
 def  ungetc(char)
 end
 
+#Push back the string
+#
+def  ungets(str)
+end
+
 #Return the String read by <em>BZ2::Reader</em> but not used in the 
 #uncompression
 #
@@ -224,32 +245,11 @@ end
 #  Indicates that the library has been improperly compiled on your platform
 class ConfigError < ::Fatal
 end
-# the superclass for all exceptions (except BZ2::ConfigError) raised by BZ2
+# Exception raised by BZ2
 class Error < ::IOError
 end
 # "End of Zip" exception : compressed file finishes before the logical
 # end of stream is detected
 class EOZError < Error
-end
-# exception handled when an uncorrect sequence is detected (internal error)
-class SequenceError < Error
-end
-# out of range for a parameter
-class ParamError < Error
-end
-# not enough memory is available
-class MemError < Error
-end
-# data integrity error is detected
-class DataError < Error
-end
-# compressed stream does not start with the correct magic bytes
-class DataMagicError < Error
-end
-# error reading or writing
-class IOError < Error
-end
-# output buffer full
-class OutBuffFullError < Error
 end
 end
