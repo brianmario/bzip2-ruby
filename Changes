@@ -42,3 +42,8 @@
 --- 0.1.9
 
  * corrected BZ_FINISH_OK (Thanks Rudi Cilibrasi <Rudi.Cilibrasi@cwi.nl>)
+
+--- 0.2.1
+
+ * replaced rb_proc_new() with bz_proc_new() for 1.6 
+       (Thanks "Akinori MUSHA" <knu@iDaemons.org>)

@@ -103,17 +103,22 @@ bz_file_mark(bzf)
 static struct bz_iv *
 bz_find_struct(obj, ptr, posp)
     VALUE obj;
-    OpenFile *ptr;
+    void *ptr;
     int *posp;
 {
     struct bz_iv *bziv;
     int i;
 
     for (i = 0; i < RARRAY(bz_internal_ary)->len; i++) {
-	VALUE res = RARRAY(bz_internal_ary)->ptr[i];
 	Data_Get_Struct(RARRAY(bz_internal_ary)->ptr[i], struct bz_iv, bziv);
 	if (ptr) {
-	    if (TYPE(bziv->io) == T_FILE && RFILE(bziv->io)->fptr == ptr) {
+	    if (TYPE(bziv->io) == T_FILE && 
+		RFILE(bziv->io)->fptr == (OpenFile *)ptr) {
+		if (posp) *posp = i;
+		return bziv;
+	    }
+	    else if (TYPE(bziv->io) == T_DATA &&
+		     DATA_PTR(bziv->io) == ptr) {
 		if (posp) *posp = i;
 		return bziv;
 	    }
@@ -180,6 +185,9 @@ bz_writer_internal_close(bzf)
 	if (TYPE(bzf->io) == T_FILE) {
 	    RFILE(bzf->io)->fptr->finalize = bziv->finalize;
 	}
+	else if (TYPE(bziv->io) == T_DATA) {
+	    RDATA(bziv->io)->dfree = bziv->finalize;
+	}
 	RDATA(bziv->bz2)->dfree = ruby_xfree;
 	bziv->bz2 = 0;
 	rb_ary_delete_at(bz_internal_ary, pos);
@@ -214,6 +222,9 @@ bz_internal_finalize(ary)
 	    RDATA(bziv->bz2)->dfree = ruby_xfree;
 	    if (TYPE(bziv->io) == T_FILE) {
 		RFILE(bziv->io)->fptr->finalize = bziv->finalize;
+	    }
+	    else if (TYPE(bziv->io) == T_DATA) {
+		RDATA(bziv->io)->dfree = bziv->finalize;
 	    }
 	    Data_Get_Struct(bziv->bz2, struct bz_file, bzf);
 	    closed = bz_writer_internal_flush(bzf);
@@ -273,23 +284,24 @@ bz_writer_free(bzf)
 }
 
 static void
-bz_io_finalize(file)
-    OpenFile *file;
+bz_io_data_finalize(ptr)
+    void *ptr;
 {
     struct bz_file *bzf;
     struct bz_iv *bziv;
     int pos;
 
-    bziv = bz_find_struct(0, file, &pos);
+    bziv = bz_find_struct(0, ptr, &pos);
     if (bziv) {
 	rb_ary_delete_at(bz_internal_ary, pos);
 	Data_Get_Struct(bziv->bz2, struct bz_file, bzf);
 	rb_protect(bz_writer_internal_flush, (VALUE)bzf, 0);
 	RDATA(bziv->bz2)->dfree = ruby_xfree;
 	if (bziv->finalize) {
-	    (*bziv->finalize)(file);
+	    (*bziv->finalize)(ptr);
 	}
-	else {
+	else if (TYPE(bzf->io) == T_FILE) {
+	    OpenFile *file = (OpenFile *)ptr;
 	    if (file->f) {
 		fclose(file->f);
 		file->f = 0;
@@ -453,9 +465,15 @@ bz_writer_init(argc, argv, obj)
 	    bziv->bz2 = obj;
 	    rb_ary_push(bz_internal_ary, iv);
 	}
-	if (TYPE(a) == T_FILE) {
+	switch (TYPE(a)) {
+	case T_FILE:
 	    bziv->finalize = RFILE(a)->fptr->finalize;
-	    RFILE(a)->fptr->finalize = bz_io_finalize;
+	    RFILE(a)->fptr->finalize = bz_io_data_finalize;
+	    break;
+	case T_DATA:
+	    bziv->finalize = RDATA(a)->dfree;
+	    RDATA(a)->dfree = bz_io_data_finalize;
+	    break;
 	}
     }
     bzf->io = a;
@@ -743,7 +761,7 @@ bz_read_until(bzf, str, len, td1)
 		    return res;
 		}
 		if (td1) {
-		    tx += td1[*(tx + len)];
+		    tx += td1[(int)*(tx + len)];
 		}
 		else {
 		    tx += 1;
@@ -979,7 +997,7 @@ bz_reader_gets_internal(argc, argv, obj, td, init)
 		td[i] = rslen + 1;
 	    }
 	    for (i = 0; i < rslen; i++) {
-		td[*(rsptr + i)] = rslen - i;
+		td[(int)*(rsptr + i)] = rslen - i;
 	    }
 	}
 	td1 = td;
@@ -1431,8 +1449,6 @@ bz_uncompress(argc, argv, obj)
     return bz_reader_read(1, &nilv, bz2);
 }
 
-#if RUBY_VERSION_CODE < 180
-
 static VALUE
 bz_s_new(argc, argv, obj)
     int argc;
@@ -1443,7 +1459,18 @@ bz_s_new(argc, argv, obj)
     return res;
 }
 
-#endif
+static VALUE
+bz_proc_new(func, val)
+    VALUE (*func)(ANYARGS);
+    VALUE val;
+{
+    VALUE tmp = Data_Wrap_Struct(rb_cData, 0, 0, 0);
+    rb_define_singleton_method(tmp, "tmp_proc", func, 0);
+    return rb_funcall2(rb_funcall(tmp, rb_intern("method"), 1, 
+                                 ID2SYM(rb_intern("tmp_proc"))),
+                       rb_intern("to_proc"), 0, 0);
+}
+    
 
 void Init_bz2()
 {
@@ -1457,7 +1484,7 @@ void Init_bz2()
     rb_global_variable(&bz_internal_ary);
     rb_funcall(rb_const_get(rb_cObject, rb_intern("ObjectSpace")), 
 	       rb_intern("define_finalizer"), 2, bz_internal_ary,
-	       rb_proc_new(bz_internal_finalize, 0));
+	       bz_proc_new(bz_internal_finalize, 0));
 
     id_new = rb_intern("new");
     id_write = rb_intern("write");
@@ -1482,12 +1509,12 @@ void Init_bz2()
       Writer
     */
     bz_cWriter = rb_define_class_under(bz_mBZ2, "Writer", rb_cData);
-#if RUBY_VERSION_CODE >= 180
+#if HAVE_RB_DEFINE_ALLOC_FUNC
     rb_define_alloc_func(bz_cWriter, bz_writer_s_alloc);
 #else
     rb_define_singleton_method(bz_cWriter, "allocate", bz_writer_s_alloc, 0);
-    rb_define_singleton_method(bz_cWriter, "new", bz_s_new, -1);
 #endif    
+    rb_define_singleton_method(bz_cWriter, "new", bz_s_new, -1);
     rb_define_singleton_method(bz_cWriter, "open", bz_writer_s_open, -1);
     rb_define_method(bz_cWriter, "initialize", bz_writer_init, -1);
     rb_define_method(bz_cWriter, "write", bz_writer_write, 1);
@@ -1506,12 +1533,12 @@ void Init_bz2()
     */
     bz_cReader = rb_define_class_under(bz_mBZ2, "Reader", rb_cData);
     rb_include_module(bz_cReader, rb_mEnumerable);
-#if RUBY_VERSION_CODE >= 180
+#if HAVE_RB_DEFINE_ALLOC_FUNC
     rb_define_alloc_func(bz_cReader, bz_reader_s_alloc);
 #else
     rb_define_singleton_method(bz_cReader, "allocate", bz_reader_s_alloc, 0);
-    rb_define_singleton_method(bz_cReader, "new", bz_s_new, -1);
 #endif
+    rb_define_singleton_method(bz_cReader, "new", bz_s_new, -1);
     rb_define_singleton_method(bz_cReader, "open", bz_reader_s_open, -1);
     rb_define_singleton_method(bz_cReader, "foreach", bz_reader_s_foreach, -1);
     rb_define_singleton_method(bz_cReader, "readlines", bz_reader_s_readlines, -1);
@@ -1545,8 +1572,12 @@ void Init_bz2()
       Internal
     */
     bz_cInternal = rb_define_class_under(bz_mBZ2, "InternalStr", rb_cData);
-    rb_undef_method(CLASS_OF(bz_cInternal), "new");
+#if HAVE_RB_DEFINE_ALLOC_FUNC
+    rb_undef_alloc_func(bz_cInternal);
+#else
     rb_undef_method(CLASS_OF(bz_cInternal), "allocate");
+#endif
+    rb_undef_method(CLASS_OF(bz_cInternal), "new");
     rb_undef_method(bz_cInternal, "initialize");
     rb_define_method(bz_cInternal, "read", bz_str_read, -1);
 }

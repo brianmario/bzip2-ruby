@@ -45,15 +45,20 @@ EOF
    make.print "HTML = bz2.html"
    docs = Dir['docs/*.rd']
    docs.each {|x| make.print " \\\n\t#{x.sub(/\.rd$/, '.html')}" }
-   make.print "\n\nRDOC = bz2.rd"
-   docs.each {|x| make.print " \\\n\t#{x}" }
+   make.print "\n\nRDOC = docs/bz2.rb"
    make.puts
    make.print <<-EOF
 
 rdoc: docs/doc/index.html
 
 docs/doc/index.html: $(RDOC)
-\t@-(cd docs; $(RUBY) b.rb bz2; rdoc bz2.rb)
+\t@-(cd docs; rdoc bz2.rb)
+
+ri: docs/bz2.rb
+\t@-(cd docs; rdoc -r bz2.rb)
+
+ri-site:
+\t@-(cd docs; rdoc -R bz2.rb)
 
 rd2: html
 
@@ -64,7 +69,7 @@ test: $(DLLIB)
    Dir.foreach('tests') do |x|
       next if /^\./ =~ x || /(_\.rb|~)$/ =~ x
       next if FileTest.directory?(x)
-      make.print "\t$(RUBY) tests/#{x}\n"
+      make.print "\t-$(RUBY) tests/#{x}\n"
    end
 ensure
    make.close

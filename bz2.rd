@@ -1,11 +1,7 @@
 =begin
-#^
-bz2 is an extension to use libbzip2 from ruby
-#^
 
-#
-# module BZ2
-#
+bz2 is an extension to use libbzip2 from ruby
+
 === Module function
 
 --- bzip2(str, blocks = 9, work = 0)
@@ -17,8 +13,18 @@ bz2 is an extension to use libbzip2 from ruby
     size used is 100000 x this value
 
     ((|work|)) controls how the compression phase behaves when presented
-    with worst case, highly repetitive, input data.Allowable values range 
-    from 0 to 250 inclusive
+    with worst case, highly repetitive, input data. 
+
+    You should set this parameter carefully; too low, and many inputs
+    will be handled by the fallback algorithm and so compress rather
+    slowly, too high, and your average-to-worst case compression times
+    can become very large.
+
+    Allowable values range from 0 to 250 inclusive. 0 is a special case,
+    equivalent to using the default value of 30.
+
+    The default value of 30 gives reasonable behaviour over a wide
+    range of circumstances.
 
 --- bunzip2(str, small = Qfalse)
 --- uncompress(str, small = Qfalse)
@@ -28,13 +34,7 @@ bz2 is an extension to use libbzip2 from ruby
     decompression algorithm which uses less memory but at the cost of
     decompressing more slowly
 
-#
-# # The class for compressing data
-#class Writer
-#
-
 == BZ2::Writer
-# class << self
 
 === Class methods
 
@@ -58,7 +58,6 @@ bz2 is an extension to use libbzip2 from ruby
 
     See ((|initialize|)) for ((|blocks|)) and ((|work|))
 
-# end
 === Methods
 
 --- close
@@ -83,8 +82,18 @@ bz2 is an extension to use libbzip2 from ruby
     size used is 100000 x this value
 
     ((|work|)) controls how the compression phase behaves when presented
-    with worst case, highly repetitive, input data.Allowable values range 
-    from 0 to 250 inclusive
+    with worst case, highly repetitive, input data. 
+
+    You should set this parameter carefully; too low, and many inputs
+    will be handled by the fallback algorithm and so compress rather
+    slowly, too high, and your average-to-worst case compression times
+    can become very large.
+
+    Allowable values range from 0 to 250 inclusive. 0 is a special case,
+    equivalent to using the default value of 30.
+
+    The default value of 30 gives reasonable behaviour over a wide
+    range of circumstances.
 
 --- <<(object)
     Writes ((|object|)). ((|object|)) will be converted to a string using
@@ -107,13 +116,6 @@ bz2 is an extension to use libbzip2 from ruby
 
 --- write(str)
     Write the string ((|str|))
-
-# end
-# # The class for decompressing data. Data can be read directly from
-# # a String, or from an object which must respond to read
-#class Reader
-# include Enumerable
-#class << self
 
 == BZ2::Reader
 
@@ -147,7 +149,6 @@ bz2 is an extension to use libbzip2 from ruby
     and returns those lines in an array. Lines are separated by 
     ((|separator|))
 
-#end
 === Methods
 
 --- initialize(object, small = false)
@@ -224,30 +225,16 @@ bz2 is an extension to use libbzip2 from ruby
 --- unused=(str)
     Initialize the uncompression with the String ((|str|))
 
-#end
-
 == Exceptions
 
-#
-# #  Indicates that the library has been improperly compiled on your platform
-# class ConfigError < ::Fatal
 === BZ2::ConfigError < Fatal
   Indicates that the library has been improperly compiled on your platform
-# end
 
-# # Exception raised by BZ2
-# class Error < ::IOError
 === BZ2::Error < ::IOError
  Exception raised by BZ2
-# end
 
-# # "End of Zip" exception : compressed file finishes before the logical 
-# # end of stream is detected
-# class EOZError < Error
 === BZ2::EOZError < BZ2::Error
  "End of Zip" exception : compressed file finishes before the logical 
   end of stream is detected
-# end
-# end
 
 =end

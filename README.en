@@ -20,12 +20,9 @@
 
 * Documentation :
 
-    make rdoc
-
-        or
-
     make rd2
-
+    make rdoc
+    make ri
 
 * Tests : if you have rubyunit, or testunit
 
