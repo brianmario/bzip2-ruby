@@ -110,7 +110,8 @@ bz_find_struct(obj, ptr, posp)
     int i;
 
     for (i = 0; i < RARRAY(bz_internal_ary)->len; i++) {
-	bziv = (struct bz_iv *)DATA_PTR(RARRAY(bz_internal_ary)->ptr[i]);
+	VALUE res = RARRAY(bz_internal_ary)->ptr[i];
+	Data_Get_Struct(RARRAY(bz_internal_ary)->ptr[i], struct bz_iv, bziv);
 	if (ptr) {
 	    if (TYPE(bziv->io) == T_FILE && RFILE(bziv->io)->fptr == ptr) {
 		if (posp) *posp = i;
@@ -197,16 +198,17 @@ bz_writer_internal_close(bzf)
     return res;
 }
 
-static void
+static VALUE
 bz_internal_finalize(ary)
     VALUE ary;
 {
     VALUE elem;
-    int closed;
+    int closed, i;
     struct bz_iv *bziv;
     struct bz_file *bzf;
 
-    while ((elem = rb_ary_pop(bz_internal_ary)) != Qnil) {
+    for (i = 0; i < RARRAY(bz_internal_ary)->len; i++) {
+	elem = RARRAY(bz_internal_ary)->ptr[i];
 	Data_Get_Struct(elem, struct bz_iv, bziv);
 	if (bziv->bz2) {
 	    RDATA(bziv->bz2)->dfree = ruby_xfree;
@@ -223,6 +225,7 @@ bz_internal_finalize(ary)
 	    }
 	}
     }
+    return Qnil;
 }
 
 static VALUE
@@ -1451,7 +1454,10 @@ void Init_bz2()
     }
 
     bz_internal_ary = rb_ary_new();
-    rb_set_end_proc(bz_internal_finalize, bz_internal_ary);
+    rb_global_variable(&bz_internal_ary);
+    rb_funcall(rb_const_get(rb_cObject, rb_intern("ObjectSpace")), 
+	       rb_intern("define_finalizer"), 2, bz_internal_ary,
+	       rb_proc_new(bz_internal_finalize, 0));
 
     id_new = rb_intern("new");
     id_write = rb_intern("write");
