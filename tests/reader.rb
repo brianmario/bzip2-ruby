@@ -9,9 +9,21 @@ require 'runit_'
 Inh = defined?(RUNIT) ? RUNIT : Test::Unit
 
 $file = "_10lines_"
+$data = [
+   "00: This is a line\n",
+   "01: This is a line\n",
+   "02: This is a line\n",
+   "03: This is a line\n",
+   "04: This is a line\n",
+   "05: This is a line\n",
+   "06: This is a line\n",
+   "07: This is a line\n",
+   "08: This is a line\n",
+   "09: This is a line\n" 
+]
 
 open("|bzip2 > #$file", "w") do |f|
-   10.times { |i| f.printf "%02d: This is a line\n", i }
+   $data.each { |l| f.puts l }
 end
 
 class TestReader < Inh::TestCase
@@ -25,7 +37,7 @@ class TestReader < Inh::TestCase
 	 assert_equal(count, num)
 	 count += 1
       end
-      assert_equal(10, count)
+      assert_equal($data.size, count)
       
       count = 0
       BZ2::Reader.foreach($file, nil) do |file|
@@ -35,7 +47,7 @@ class TestReader < Inh::TestCase
 	    count += 1
 	 end
       end
-      assert_equal(10, count)
+      assert_equal($data.size, count)
 
       count = 0
       BZ2::Reader.foreach($file, ' ') do |thing|
@@ -46,11 +58,11 @@ class TestReader < Inh::TestCase
 
    def test_s_readlines
       lines = BZ2::Reader.readlines($file)
-      assert_equal(10, lines.size)
+      assert_equal($data.size, lines.size)
 
       lines = BZ2::Reader.readlines($file, nil)
       assert_equal(1, lines.size)
-      assert_equal(SAMPLE.length*10, lines[0].size)
+      assert_equal(SAMPLE.length * $data.size, lines[0].size)
    end
 
    def test_closed?
@@ -68,7 +80,7 @@ class TestReader < Inh::TestCase
 	    assert_equal(count, num)
 	    count += 1
 	 end
-	 assert_equal(10, count)
+	 assert_equal($data.size, count)
       end
 
       count = 0
@@ -81,7 +93,7 @@ class TestReader < Inh::TestCase
 	    end
 	 end
       end
-      assert_equal(10, count)
+      assert_equal($data.size, count)
 
       count = 0
       BZ2::Reader.open($file) do |file|
@@ -94,17 +106,7 @@ class TestReader < Inh::TestCase
 
    def test_each_byte
       count = 0
-      data = 
-	 "00: This is a line\n" +
-	 "01: This is a line\n" +
-	 "02: This is a line\n" +
-	 "03: This is a line\n" +
-	 "04: This is a line\n" +
-	 "05: This is a line\n" +
-	 "06: This is a line\n" +
-	 "07: This is a line\n" +
-	 "08: This is a line\n" +
-	 "09: This is a line\n" 
+      data = $data.join
 
       BZ2::Reader.open($file) do |file|
 	 file.each_byte do |b|
@@ -112,7 +114,7 @@ class TestReader < Inh::TestCase
 	    count += 1
 	 end
       end
-      assert_equal(SAMPLE.length*10, count)
+      assert_equal(SAMPLE.length * $data.size, count)
    end
 
    def test_each_line
@@ -123,7 +125,7 @@ class TestReader < Inh::TestCase
 	    assert_equal(count, num)
 	    count += 1
 	 end
-	 assert_equal(10, count)
+	 assert_equal($data.size, count)
       end
 
       count = 0
@@ -136,7 +138,7 @@ class TestReader < Inh::TestCase
 	    end
 	 end
       end
-      assert_equal(10, count)
+      assert_equal($data.size, count)
 
       count = 0
       BZ2::Reader.open($file) do |file|
@@ -149,7 +151,7 @@ class TestReader < Inh::TestCase
 
    def test_eof
       BZ2::Reader.open($file) do |file|
-	 10.times do
+	 $data.size.times do
 	    assert(!file.eof)
 	    assert(!file.eof?)
 	    file.gets
@@ -161,17 +163,7 @@ class TestReader < Inh::TestCase
 
    def test_getc
       count = 0
-      data = 
-	 "00: This is a line\n" +
-	 "01: This is a line\n" +
-	 "02: This is a line\n" +
-	 "03: This is a line\n" +
-	 "04: This is a line\n" +
-	 "05: This is a line\n" +
-	 "06: This is a line\n" +
-	 "07: This is a line\n" +
-	 "08: This is a line\n" +
-	 "09: This is a line\n" 
+      data = $data.join
       
       BZ2::Reader.open($file) do |file|
 	 while (ch = file.getc)
@@ -180,7 +172,7 @@ class TestReader < Inh::TestCase
 	 end
 	 assert_equal(nil, file.getc)
       end
-      assert_equal(SAMPLE.length*10, count)
+      assert_equal(SAMPLE.length * $data.size, count)
    end
 
    def test_gets
@@ -192,7 +184,19 @@ class TestReader < Inh::TestCase
 	    count += 1
 	 end
 	 assert_equal(nil, file.gets)
-	 assert_equal(10, count)
+	 assert_equal($data.size, count)
+      end
+
+      count = 0
+      BZ2::Reader.open($file) do |file|
+	 while (line = file.gets("line\n"))
+	    assert_equal($data[count], line)
+	    num = line[0..1].to_i
+	    assert_equal(count, num)
+	    count += 1
+	 end
+	 assert_equal(nil, file.gets)
+	 assert_equal($data.size, count)
       end
 
       count = 0
@@ -205,7 +209,7 @@ class TestReader < Inh::TestCase
 	    end
 	 end
       end
-      assert_equal(10, count)
+      assert_equal($data.size, count)
 
       count = 0
       BZ2::Reader.open($file) do |file|
@@ -219,7 +223,7 @@ class TestReader < Inh::TestCase
    def test_read
       BZ2::Reader.open($file) do |file|
 	 content = file.read
-	 assert_equal(SAMPLE.length*10, content.length)
+	 assert_equal(SAMPLE.length * $data.size, content.length)
 	 count = 0
 	 content.split(/\n/).each do |line|
 	    num = line[0..1].to_i
@@ -236,18 +240,7 @@ class TestReader < Inh::TestCase
 
    def test_readchar
       count = 0
-      data = 
-	 "00: This is a line\n" +
-	 "01: This is a line\n" +
-	 "02: This is a line\n" +
-	 "03: This is a line\n" +
-	 "04: This is a line\n" +
-	 "05: This is a line\n" +
-	 "06: This is a line\n" +
-	 "07: This is a line\n" +
-	 "08: This is a line\n" +
-	 "09: This is a line\n" 
-      
+      data = $data.join
       BZ2::Reader.open($file) do |file|
 	 190.times do |count|
 	    ch = file.readchar
@@ -261,7 +254,7 @@ class TestReader < Inh::TestCase
    def test_readline
       count = 0
       BZ2::Reader.open($file) do |file|
-	 10.times do |count|
+	 $data.size.times do |count|
 	    line = file.readline
 	    num = line[0..1].to_i
 	    assert_equal(count, num)
@@ -280,7 +273,7 @@ class TestReader < Inh::TestCase
 	 end
 	 assert_raises(BZ2::EOZError) { file.readline }
       end
-      assert_equal(10, count)
+      assert_equal($data.size, count)
 
       count = 0
       BZ2::Reader.open($file) do |file|
@@ -295,13 +288,13 @@ class TestReader < Inh::TestCase
    def test_readlines
       BZ2::Reader.open($file) do |file|
 	 lines = file.readlines
-	 assert_equal(10, lines.size)
+	 assert_equal($data.size, lines.size)
       end
       
       BZ2::Reader.open($file) do |file|
 	 lines = file.readlines(nil)
 	 assert_equal(1, lines.size)
-	 assert_equal(SAMPLE.length*10, lines[0].size)
+	 assert_equal(SAMPLE.length * $data.size, lines[0].size)
       end
    end
 
@@ -320,25 +313,13 @@ class TestReader < Inh::TestCase
    end
    
    def test_ungets
-      data = [
-	 "00: This is a line\n",
-	 "01: This is a line\n",
-	 "02: This is a line\n",
-	 "03: This is a line\n",
-	 "04: This is a line\n",
-	 "05: This is a line\n",
-	 "06: This is a line\n",
-	 "07: This is a line\n",
-	 "08: This is a line\n",
-	 "09: This is a line\n" 
-      ]
       count = 0
       BZ2::Reader.open($file) do |file|
-	 assert_equal(data[count], file.gets)
+	 assert_equal($data[count], file.gets)
 	 assert_equal(count + 1, file.lineno);
-	 assert_nil(file.ungets(data[count]))
+	 assert_nil(file.ungets($data[count]))
 	 assert_equal(count, file.lineno);
-	 assert_equal(data[count], file.gets)
+	 assert_equal($data[count], file.gets)
 	 assert_equal(count + 1, file.lineno);
 	 count += 1
       end

@@ -9,3 +9,8 @@
  * BZ2::bzip2, BZ2::bunzip2
  * too many exceptions 
 
+--- 0.1.2
+
+ * better (???) interface for #read
+ * finalize for objects which respond to #closed?
+
