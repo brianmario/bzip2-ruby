@@ -1,0 +1,185 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html 
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>bz2.rd</title>
+</head>
+<body>
+<p>bz2 is an extension to use bunzip2 from ruby</p>
+<h3><a name="label:0" id="label:0">Module function</a></h3><!-- RDLabel: "Module function" -->
+<dl>
+<dt><a name="label:1" id="label:1"><code>compress(<var>str</var>, <var>blocks</var> = <var>9</var>, <var>work</var> = <var>0</var>)</code></a></dt><!-- RDLabel: "compress" -->
+<dd>
+<p>Compress the String <var>str</var></p>
+<p><var>blocks</var> specifies the block size to be used for compression.
+It should be a value between 1 and 9 inclusive, and the actual block
+size used is 100000 x this value</p>
+<p><var>work</var> controls how the compression phase behaves when presented
+with worst case, highly repetitive, input data.Allowable values range 
+from 0 to 250 inclusive</p></dd>
+<dt><a name="label:2" id="label:2"><code>uncompress(<var>str</var>, <var>small</var> = <var>Qfalse</var>)</code></a></dt><!-- RDLabel: "uncompress" -->
+<dd>
+<p>Uncompress the String <var>str</var></p>
+<p>If <var>small</var> is <var>true</var>, the library will use an alternative 
+decompression algorithm which uses less memory but at the cost of
+decompressing more slowly</p></dd>
+</dl>
+<h2><a name="label:3" id="label:3">BZ2::Writer</a></h2><!-- RDLabel: "BZ2::Writer" -->
+<h3><a name="label:4" id="label:4">Class methods</a></h3><!-- RDLabel: "Class methods" -->
+<dl>
+<dt><a name="label:5" id="label:5"><code>allocate</code></a></dt><!-- RDLabel: "allocate" -->
+<dd>
+<p>allocate a new <var>BZ2::Writer</var></p></dd>
+<dt><a name="label:6" id="label:6"><code>open(<var>file</var>, <var>mode</var> = "<var>w</var>", <var>blocks</var> = <var>9</var>, <var>work</var> = <var>0</var>) {|<var>bz2</var>| ... }</code></a></dt><!-- RDLabel: "open" -->
+<dd>
+<p>Create a new <var>BZ2::Writer</var> and call the associated block.
+The object is closed at the end of the block</p></dd>
+</dl>
+<h3><a name="label:7" id="label:7">Methods</a></h3><!-- RDLabel: "Methods" -->
+<dl>
+<dt><a name="label:8" id="label:8"><code>close</code></a></dt><!-- RDLabel: "close" -->
+<dd>
+<p>Terminate the compression.</p></dd>
+<dt><a name="label:9" id="label:9"><code>flush</code></a></dt><!-- RDLabel: "flush" -->
+<dd>
+<p>Flush the data and terminate the compression, the object can be re-used
+to store another compressed string</p></dd>
+<dt><a name="label:10" id="label:10"><code>initialize(<var>object</var> = <var>nil</var>, <var>blocks</var> = <var>9</var>, <var>work</var> = <var>0</var>)</code></a></dt><!-- RDLabel: "initialize" -->
+<dd>
+<p>If <var>object</var> is nil then the compression will be made in
+a String which is returned when <var>close</var> or <var>flush</var> is called</p>
+<p>Otherwise <var>object</var> must respond to <var>write(str)</var></p>
+<p><var>blocks</var> specifies the block size to be used for compression.
+It should be a value between 1 and 9 inclusive, and the actual block
+size used is 100000 x this value</p>
+<p><var>work</var> controls how the compression phase behaves when presented
+with worst case, highly repetitive, input data.Allowable values range 
+from 0 to 250 inclusive</p></dd>
+<dt><a name="label:11" id="label:11"><code>&lt;&lt;(<var>object</var>)</code></a></dt><!-- RDLabel: "<<" -->
+<dd>
+<p>Writes <var>object</var>. <var>object</var> will be converted to a string using
+to_s</p></dd>
+<dt><a name="label:12" id="label:12"><code>print(<var>object</var> = $<var>_</var>, ...)</code></a></dt><!-- RDLabel: "print" -->
+<dd>
+<p>Writes the given object(s)</p></dd>
+<dt><a name="label:13" id="label:13"><code>printf(<var>format</var>, <var>object</var> = $<var>_</var>, ...)</code></a></dt><!-- RDLabel: "printf" -->
+<dd>
+<p>Formats and writes the given object(s)</p></dd>
+<dt><a name="label:14" id="label:14"><code>putc(<var>char</var>)</code></a></dt><!-- RDLabel: "putc" -->
+<dd>
+<p>Writes the given character</p></dd>
+<dt><a name="label:15" id="label:15"><code>puts(<var>object</var>, ...)</code></a></dt><!-- RDLabel: "puts" -->
+<dd>
+<p>Writes the given objects </p></dd>
+<dt><a name="label:16" id="label:16"><code>write(<var>str</var>)</code></a></dt><!-- RDLabel: "write" -->
+<dd>
+<p>Write the string <var>str</var></p></dd>
+</dl>
+<h2><a name="label:17" id="label:17">BZ2::Reader</a></h2><!-- RDLabel: "BZ2::Reader" -->
+<h3><a name="label:18" id="label:18">Class methods</a></h3><!-- RDLabel: "Class methods" -->
+<dl>
+<dt><a name="label:19" id="label:19"><code>allocate</code></a></dt><!-- RDLabel: "allocate" -->
+<dd>
+<p>allocate a new <var>BZ2::Reader</var></p></dd>
+<dt><a name="label:20" id="label:20"><code>foreach(<var>filename</var>, <var>separator</var> = $/) {|<var>line</var>| ... }</code></a></dt><!-- RDLabel: "foreach" -->
+<dd>
+<p>Uncompress the file and call the block for each line, where
+lines are separated by <var>separator</var></p></dd>
+<dt><a name="label:21" id="label:21"><code>open(<var>filename</var>)</code></a></dt><!-- RDLabel: "open" -->
+<dd>
+<p>With no associated block, open is a synonym for BZ2::Reader::new. If the
+optional code block is given, it will be passed file as an
+argument, and the file will automatically be closed when the block
+terminates. In this instance, BZ2::Reader::open returns nil.</p></dd>
+<dt><a name="label:22" id="label:22"><code>readlines(<var>filename</var>, <var>separator</var> = $/)</code></a></dt><!-- RDLabel: "readlines" -->
+<dd>
+<p>Uncompress the file and reads the entire file as individual lines,
+and returns those lines in an array. Lines are separated by 
+<var>separator</var></p></dd>
+</dl>
+<h3><a name="label:23" id="label:23">Methods</a></h3><!-- RDLabel: "Methods" -->
+<dl>
+<dt><a name="label:24" id="label:24"><code>initialize(<var>object</var>, <var>small</var> = <var>false</var>)</code></a></dt><!-- RDLabel: "initialize" -->
+<dd>
+<p>object must be a String which contains compressed data, or an
+object which respond to <var>read(size)</var></p>
+<p>If <var>small</var> is <var>true</var>, the library will use an alternative 
+decompression algorithm which uses less memory but at the cost of
+decompressing more slowly</p></dd>
+<dt><a name="label:25" id="label:25"><code>close(<var>end</var> = <var>true</var>)</code></a></dt><!-- RDLabel: "close" -->
+<dd>
+<p>Terminate the uncompression.</p>
+<p>If <var>end</var> has a <var>true</var> value, the file is closed. Otherwise
+the file is put at the beginning of the next bzip component.</p></dd>
+<dt><a name="label:26" id="label:26"><code>closed?</code></a></dt><!-- RDLabel: "closed?" -->
+<dd>
+<p>Return true if the file is closed</p></dd>
+<dt><a name="label:27" id="label:27"><code>each(<var>separator</var> = $/) {|<var>line</var>| ... }</code></a><!-- RDLabel: "each" -->
+<dt><a name="label:28" id="label:28"><code>each_line(<var>separator</var> = $/) {|<var>line</var>| ... }</code></a></dt><!-- RDLabel: "each_line" -->
+<dd>
+<p>Execute the block for each line, where lines
+are separated by the optional <var>separator</var></p></dd>
+<dt><a name="label:29" id="label:29"><code>eof</code></a></dt><!-- RDLabel: "eof" -->
+<dd>
+<p>Return true at end of file</p></dd>
+<dt><a name="label:30" id="label:30"><code>eoz</code></a></dt><!-- RDLabel: "eoz" -->
+<dd>
+<p>"End Of Zip". Return true at the end of the zip component</p></dd>
+<dt><a name="label:31" id="label:31"><code>getc</code></a></dt><!-- RDLabel: "getc" -->
+<dd>
+<p>Get the next 8-bit byte (0..255). Returns nil if called
+at end of file.</p></dd>
+<dt><a name="label:32" id="label:32"><code>gets(<var>separator</var> = $/)</code></a></dt><!-- RDLabel: "gets" -->
+<dd>
+<p>Reads the next line; lines are separated by <var>separator</var>.
+Returns nil if called at end of file.</p></dd>
+<dt><a name="label:33" id="label:33"><code>read(<var>number</var>)</code></a></dt><!-- RDLabel: "read" -->
+<dd>
+<p>Read at most <var>number</var> characters
+Returns nil if called at end of file</p></dd>
+<dt><a name="label:34" id="label:34"><code>readline(<var>separator</var> = $/)</code></a></dt><!-- RDLabel: "readline" -->
+<dd>
+<p>Reads the next line; lines are separated by <var>separator</var>.
+Raise an error at end of file</p></dd>
+<dt><a name="label:35" id="label:35"><code>readlines(<var>separator</var> = $/)</code></a></dt><!-- RDLabel: "readlines" -->
+<dd>
+<p>Reads all of the lines, and returns them in anArray. Lines
+are separated by the optional <var>separator</var></p></dd>
+<dt><a name="label:36" id="label:36"><code>ungetc(<var>char</var>)</code></a></dt><!-- RDLabel: "ungetc" -->
+<dd>
+<p>Push back one character</p></dd>
+<dt><a name="label:37" id="label:37"><code>unused</code></a></dt><!-- RDLabel: "unused" -->
+<dd>
+<p>Return the String read by <var>BZ2::Reader</var> but not used in the 
+uncompression</p></dd>
+<dt><a name="label:38" id="label:38"><code>unused=(<var>str</var>)</code></a></dt><!-- RDLabel: "unused=" -->
+<dd>
+<p>Initialize the uncompression with the String <var>str</var></p></dd>
+</dl>
+<h2><a name="label:39" id="label:39">Exceptions</a></h2><!-- RDLabel: "Exceptions" -->
+<h3><a name="label:40" id="label:40">BZ2::ConfigError &lt; Fatal</a></h3><!-- RDLabel: "BZ2::ConfigError < Fatal" -->
+<pre>Indicates that the library has been improperly compiled on your platform</pre>
+<h3><a name="label:41" id="label:41">BZ2::Error &lt; ::IOError</a></h3><!-- RDLabel: "BZ2::Error < ::IOError" -->
+<pre>the superclass for all exceptions (except BZ2::ConfigError) raised by BZ2</pre>
+<h3><a name="label:42" id="label:42">BZ2::EOZError &lt; BZ2::Error</a></h3><!-- RDLabel: "BZ2::EOZError < BZ2::Error" -->
+<pre>"End of Zip" exception : compressed file finishes before the logical 
+ end of stream is detected</pre>
+<h3><a name="label:43" id="label:43">BZ2::SequenceError &lt; BZ2::Error</a></h3><!-- RDLabel: "BZ2::SequenceError < BZ2::Error" -->
+<pre>exception handled when an uncorrect sequence is detected (internal error)</pre>
+<h3><a name="label:44" id="label:44">BZ2::ParamError &lt; BZ2::Error</a></h3><!-- RDLabel: "BZ2::ParamError < BZ2::Error" -->
+<pre>out of range for a parameter</pre>
+<h3><a name="label:45" id="label:45">BZ2::MemError &lt; BZ2::Error</a></h3><!-- RDLabel: "BZ2::MemError < BZ2::Error" -->
+<pre>not enough memory is available</pre>
+<h3><a name="label:46" id="label:46">BZ2::DataError &lt; BZ2::Error</a></h3><!-- RDLabel: "BZ2::DataError < BZ2::Error" -->
+<pre>data integrity error is detected</pre>
+<h3><a name="label:47" id="label:47">BZ2::DataMagicError &lt; BZ2::Error</a></h3><!-- RDLabel: "BZ2::DataMagicError < BZ2::Error" -->
+<pre>compressed stream does not start with the correct magic bytes</pre>
+<h3><a name="label:48" id="label:48">BZ2::IOError &lt; BZ2::Error</a></h3><!-- RDLabel: "BZ2::IOError < BZ2::Error" -->
+<pre>error reading or writing</pre>
+<h3><a name="label:49" id="label:49">BZ2::OutBuffFullError &lt; BZ2::Error</a></h3><!-- RDLabel: "BZ2::OutBuffFullError < BZ2::Error" -->
+<pre>output buffer full</pre>
+
+</body>
+</html>
