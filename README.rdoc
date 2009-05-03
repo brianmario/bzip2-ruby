@@ -20,3 +20,4 @@ You may need to specify:
 * Renamed BZ2 module/namespace to Bzip2
 * Renamed compiled binary from "bz2" to "bzip2"
 * Renamed gem from "bz2" to "bzip2-ruby"
+* Converted original tests to rspec
