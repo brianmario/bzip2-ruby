@@ -1,39 +1,25 @@
 = This is an interface to the library libbzip2
 
-* Installation
+== Installation
+
+ sudo gem install brianmario-bzip2-ruby -s http://gems.github.com/
  
-   ruby extconf.rb
-   make
-   make install
- 
-== You may need to specify :
+You may need to specify:
 
-  --with-bz2-include=<include file directory for libbzip2>
+ --with-bz2-dir=<include file directory for libbzip2>
 
-  --with-bz2-lib=<library directory for libbzip2>
+== Documentation:
 
-  --with-bz2-dir=<prefix for library and include of libbzip2>
+ coming soon...
 
-== Example :
- 
-  ruby extconf.rb --with-bz2-dir=/home/ts/local
+== Spec Tests:
 
-* Documentation :
+ coming soon...
 
-    make rd2
-    make rdoc
-    make ri
-
-* Tests : if you have rubyunit, or testunit
-
-   make test
-
-* Copying
+== Copying
  
  This extension module is copyrighted free software by Guy Decoux
  
- You can redistribute it and/or modify it under the same term as
- Ruby.
+ You can redistribute it and/or modify it under the same term as Ruby.
  
- 
-Guy Decoux <ts@moulon.inra.fr>
+ Guy Decoux <ts@moulon.inra.fr>

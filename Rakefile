@@ -1,24 +1,19 @@
-%w[rubygems rake rake/clean fileutils newgem rubigen].each { |f| require f }
-#require File.dirname(__FILE__) + '/lib/bz2'
-
-# Generate all the Rake tasks
-# Run 'rake -T' to see list of generated tasks (from gem root directory)
-$hoe = Hoe.new('bz2', '0.2.2') do |p|
-  p.developer('Tony Doan', 'tdoan@tdoan.com')
-  p.changes              = p.paragraphs_of("History.txt", 0..1).join("\n\n")
-  p.rubyforge_name       = 'portupgrade'
-  p.extra_dev_deps = [
-    ['newgem', ">= #{::Newgem::VERSION}"]
-  ]
-  
-  p.clean_globs |= %w[**/.DS_Store tmp *.log]
-  path = (p.rubyforge_name == p.name) ? p.rubyforge_name : "\#{p.rubyforge_name}/\#{p.name}"
-  p.remote_rdoc_dir = File.join(path.gsub(/^#{p.rubyforge_name}\/?/,''), 'rdoc')
-  p.rsync_args = '-av --delete --ignore-errors'
+# encoding: UTF-8
+begin
+  require 'jeweler'
+  Jeweler::Tasks.new do |gem|
+    gem.name = "bzip2-ruby"
+    gem.summary = "Ruby C bindings to libbzip2."
+    gem.email = "seniorlopez@gmail.com"
+    gem.homepage = "http://github.com/brianmario/bzip2-ruby"
+    gem.authors = ["Guy Decoux", "Brian Lopez"]
+    gem.require_paths = ["ext"]
+    gem.extra_rdoc_files = `git ls-files *.rdoc`.split("\n")
+    gem.files = `git ls-files`.split("\n")
+    gem.extensions = ["ext/extconf.rb"]
+    gem.files.include %w(lib/jeweler/templates/.document lib/jeweler/templates/.gitignore)
+    # gem.rubyforge_project = "bzip2-ruby"
+  end
+rescue LoadError
+  puts "Jeweler, or one of its dependencies, is not available. Install it with: sudo gem install technicalpickles-jeweler -s http://gems.github.com"
 end
-
-require 'newgem/tasks' # load /tasks/*.rake
-Dir['tasks/**/*.rake'].each { |t| load t }
-
-# TODO - want other tests/tasks run by default? Add them to the list
-# task :default => [:spec, :features]
