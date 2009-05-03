@@ -1471,7 +1471,7 @@ bz_proc_new(func, val)
                        rb_intern("to_proc"), 0, 0);
 }
 
-void Init_bz2()
+void Init_bzip2()
 {
     VALUE bz_mBZ2;
 

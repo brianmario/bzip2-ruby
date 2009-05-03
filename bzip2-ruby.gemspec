@@ -14,10 +14,12 @@ Gem::Specification.new do |s|
   ]
   s.files = [
     "History.txt",
-    "Manifest.txt",
     "README.rdoc",
     "Rakefile",
     "VERSION.yml",
+    "bzip2-ruby.gemspec",
+    "ext/bz2.c",
+    "ext/extconf.rb",
     "tasks/extconf.rake",
     "tasks/extconf/bz2.rake",
     "test/reader.rb",
