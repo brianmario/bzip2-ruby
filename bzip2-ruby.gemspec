@@ -10,10 +10,11 @@ Gem::Specification.new do |s|
   s.email = %q{seniorlopez@gmail.com}
   s.extensions = ["ext/extconf.rb"]
   s.extra_rdoc_files = [
+    "CHANGELOG.rdoc",
     "README.rdoc"
   ]
   s.files = [
-    "History.txt",
+    "CHANGELOG.rdoc",
     "README.rdoc",
     "Rakefile",
     "VERSION.yml",
@@ -22,7 +23,6 @@ Gem::Specification.new do |s|
     "ext/extconf.rb",
     "tasks/extconf.rake",
     "tasks/extconf/bz2.rake",
-    "test/reader.rb",
     "test/runit_.rb",
     "test/writer.rb"
   ]
@@ -33,7 +33,9 @@ Gem::Specification.new do |s|
   s.rubygems_version = %q{1.3.2}
   s.summary = %q{Ruby C bindings to libbzip2.}
   s.test_files = [
-    "test/reader.rb",
+    "spec/reader_spec.rb",
+    "spec/spec_helper.rb",
+    "spec/writer_spec.rb",
     "test/runit_.rb",
     "test/writer.rb"
   ]
