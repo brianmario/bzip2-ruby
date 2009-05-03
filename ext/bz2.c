@@ -1473,9 +1473,9 @@ bz_proc_new(func, val)
 
 void Init_bzip2()
 {
-    VALUE bz_mBZ2;
+    VALUE bz_mBzip2;
 
-    if (rb_const_defined_at(rb_cObject, rb_intern("BZ2"))) {
+    if (rb_const_defined_at(rb_cObject, rb_intern("Bzip2"))) {
 	rb_raise(rb_eNameError, "module already defined");
     }
 
@@ -1494,20 +1494,20 @@ void Init_bzip2()
     id_closed = rb_intern("closed?");
     id_str = rb_intern("to_str");
 
-    bz_mBZ2 = rb_define_module("BZ2");
-    bz_eConfigError = rb_define_class_under(bz_mBZ2, "ConfigError", rb_eFatal);
-    bz_eError = rb_define_class_under(bz_mBZ2, "Error", rb_eIOError);
-    bz_eEOZError = rb_define_class_under(bz_mBZ2, "EOZError", bz_eError);
+    bz_mBzip2 = rb_define_module("Bzip2");
+    bz_eConfigError = rb_define_class_under(bz_mBzip2, "ConfigError", rb_eFatal);
+    bz_eError = rb_define_class_under(bz_mBzip2, "Error", rb_eIOError);
+    bz_eEOZError = rb_define_class_under(bz_mBzip2, "EOZError", bz_eError);
 
-    rb_define_module_function(bz_mBZ2, "compress", bz_compress, -1);
-    rb_define_module_function(bz_mBZ2, "uncompress", bz_uncompress, -1);
-    rb_define_module_function(bz_mBZ2, "decompress", bz_uncompress, -1);
-    rb_define_module_function(bz_mBZ2, "bzip2", bz_compress, -1);
-    rb_define_module_function(bz_mBZ2, "bunzip2", bz_uncompress, -1);
+    rb_define_module_function(bz_mBzip2, "compress", bz_compress, -1);
+    rb_define_module_function(bz_mBzip2, "uncompress", bz_uncompress, -1);
+    rb_define_module_function(bz_mBzip2, "decompress", bz_uncompress, -1);
+    rb_define_module_function(bz_mBzip2, "bzip2", bz_compress, -1);
+    rb_define_module_function(bz_mBzip2, "bunzip2", bz_uncompress, -1);
     /*
       Writer
     */
-    bz_cWriter = rb_define_class_under(bz_mBZ2, "Writer", rb_cData);
+    bz_cWriter = rb_define_class_under(bz_mBzip2, "Writer", rb_cData);
 #if HAVE_RB_DEFINE_ALLOC_FUNC
     rb_define_alloc_func(bz_cWriter, bz_writer_s_alloc);
 #else
@@ -1530,7 +1530,7 @@ void Init_bzip2()
     /*
       Reader
     */
-    bz_cReader = rb_define_class_under(bz_mBZ2, "Reader", rb_cData);
+    bz_cReader = rb_define_class_under(bz_mBzip2, "Reader", rb_cData);
     rb_include_module(bz_cReader, rb_mEnumerable);
 #if HAVE_RB_DEFINE_ALLOC_FUNC
     rb_define_alloc_func(bz_cReader, bz_reader_s_alloc);
@@ -1570,7 +1570,7 @@ void Init_bzip2()
     /*
       Internal
     */
-    bz_cInternal = rb_define_class_under(bz_mBZ2, "InternalStr", rb_cData);
+    bz_cInternal = rb_define_class_under(bz_mBzip2, "InternalStr", rb_cData);
 #if HAVE_RB_DEFINE_ALLOC_FUNC
     rb_undef_alloc_func(bz_cInternal);
 #else
