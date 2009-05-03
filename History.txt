@@ -1,3 +1,15 @@
+== 0.2.4 2009-05-02
+
+* renamed BZ2 module/namespace to Bzip2
+
+== 0.2.3 2009-05-02
+
+* renamed gem to bzip2-ruby from bz2
+* initial conversion to jeweler
+* bundling gemspec
+* README and file structure organization updates
+* updated Init_*() ruby initializer function to match new gem name
+
 == 0.2.2 2008-12-22
 
 * 1 major enhancement:
