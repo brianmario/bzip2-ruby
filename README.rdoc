@@ -21,3 +21,10 @@ You may need to specify:
  This extension module is copyrighted free software by Guy Decoux
  You can redistribute it and/or modify it under the same term as Ruby.
  Guy Decoux <ts@moulon.inra.fr>
+
+== Modifications from origin version
+
+* Switch to Jeweler
+* Renamed BZ2 module/namespace to Bzip2
+* Renamed compiled binary from "bz2" to "bzip2"
+* Renamed gem from "bz2" to "bzip2-ruby"
