@@ -3,6 +3,7 @@
 # This is the test from rubicon
 
 $LOAD_PATH.unshift(*%w{.. tests})
+require 'rubygems'
 require 'bzip2'
 require 'runit_'
 
