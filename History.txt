@@ -1,0 +1,5 @@
+== 0.2.2 2008-12-22
+
+* 1 major enhancement:
+  * Gemify bz2 library from http://moulon.inra.fr/ruby/bz2.html
+  * All credit goes to Guy Decoux <ts@moulon.inra.fr>

@@ -1,0 +1,11 @@
+History.txt
+Manifest.txt
+README.rdoc
+Rakefile
+ext/bz2/bz2.c
+ext/bz2/extconf.rb
+tasks/extconf/bz2.rake
+tasks/extconf.rake
+test/reader.rb
+test/runit_.rb
+test/writer.rb
