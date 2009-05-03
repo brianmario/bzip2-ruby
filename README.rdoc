@@ -8,14 +8,6 @@ You may need to specify:
 
  --with-bz2-dir=<include file directory for libbzip2>
 
-== Documentation:
-
- coming soon...
-
-== Spec Tests:
-
- coming soon...
-
 == Copying
  
  This extension module is copyrighted free software by Guy Decoux
