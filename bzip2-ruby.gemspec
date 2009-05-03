@@ -21,10 +21,11 @@ Gem::Specification.new do |s|
     "bzip2-ruby.gemspec",
     "ext/bz2.c",
     "ext/extconf.rb",
+    "spec/reader_spec.rb",
+    "spec/spec_helper.rb",
+    "spec/writer_spec.rb",
     "tasks/extconf.rake",
-    "tasks/extconf/bz2.rake",
-    "test/runit_.rb",
-    "test/writer.rb"
+    "tasks/extconf/bz2.rake"
   ]
   s.has_rdoc = true
   s.homepage = %q{http://github.com/brianmario/bzip2-ruby}
@@ -35,9 +36,7 @@ Gem::Specification.new do |s|
   s.test_files = [
     "spec/reader_spec.rb",
     "spec/spec_helper.rb",
-    "spec/writer_spec.rb",
-    "test/runit_.rb",
-    "test/writer.rb"
+    "spec/writer_spec.rb"
   ]
 
   if s.respond_to? :specification_version then
