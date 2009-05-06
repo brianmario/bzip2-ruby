@@ -19,6 +19,7 @@ Gem::Specification.new do |s|
     "Rakefile",
     "VERSION.yml",
     "bzip2-ruby.gemspec",
+    "ext/bzip2.c",
     "ext/extconf.rb",
     "spec/reader_spec.rb",
     "spec/spec_helper.rb",
