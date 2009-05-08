@@ -109,8 +109,8 @@ bz_find_struct(obj, ptr, posp)
     struct bz_iv *bziv;
     int i;
 
-    for (i = 0; i < RARRAY(bz_internal_ary)->len; i++) {
-	Data_Get_Struct(RARRAY(bz_internal_ary)->ptr[i], struct bz_iv, bziv);
+    for (i = 0; i < RARRAY_LEN(bz_internal_ary); i++) {
+	Data_Get_Struct(RARRAY_PTR(bz_internal_ary)[i], struct bz_iv, bziv);
 	if (ptr) {
 	    if (TYPE(bziv->io) == T_FILE && 
 		RFILE(bziv->io)->fptr == (OpenFile *)ptr) {
@@ -215,8 +215,8 @@ bz_internal_finalize(ary, obj)
     struct bz_iv *bziv;
     struct bz_file *bzf;
 
-    for (i = 0; i < RARRAY(bz_internal_ary)->len; i++) {
-	elem = RARRAY(bz_internal_ary)->ptr[i];
+    for (i = 0; i < RARRAY_LEN(bz_internal_ary); i++) {
+	elem = RARRAY_PTR(bz_internal_ary)[i];
 	Data_Get_Struct(elem, struct bz_iv, bziv);
 	if (bziv->bz2) {
 	    RDATA(bziv->bz2)->dfree = ruby_xfree;
@@ -396,8 +396,8 @@ bz_str_write(obj, str)
     if (TYPE(str) != T_STRING) {
 	rb_raise(rb_eArgError, "expected a String");
     }
-    if (RSTRING(str)->len) {
-	rb_str_cat(obj, RSTRING(str)->ptr, RSTRING(str)->len);
+    if (RSTRING_LEN(str)) {
+	rb_str_cat(obj, RSTRING_PTR(str), RSTRING_LEN(str));
     }
     return str;
 }
@@ -507,8 +507,8 @@ bz_writer_write(obj, a)
 	bzf->buflen = BZ_RB_BLOCKSIZE;
 	bzf->buf[0] = bzf->buf[bzf->buflen] = '\0';
     }
-    bzf->bzs.next_in = RSTRING(a)->ptr;
-    bzf->bzs.avail_in = RSTRING(a)->len;
+    bzf->bzs.next_in = RSTRING_PTR(a);
+    bzf->bzs.avail_in = RSTRING_LEN(a);
     while (bzf->bzs.avail_in) {
 	bzf->bzs.next_out = bzf->buf;
 	bzf->bzs.avail_out = bzf->buflen;
@@ -691,14 +691,14 @@ bz_next_available(bzf, in)
     }
     if (!bzf->bzs.avail_in) {
 	bzf->in = rb_funcall(bzf->io, id_read, 1, INT2FIX(1024));
-	if (TYPE(bzf->in) != T_STRING || RSTRING(bzf->in)->len == 0) {
+	if (TYPE(bzf->in) != T_STRING || RSTRING_LEN(bzf->in) == 0) {
 	    BZ2_bzDecompressEnd(&(bzf->bzs));
 	    bzf->bzs.avail_out = 0;
 	    bzf->state = BZ_UNEXPECTED_EOF;
 	    bz_raise(bzf->state);
 	}
-	bzf->bzs.next_in = RSTRING(bzf->in)->ptr;
-	bzf->bzs.avail_in = RSTRING(bzf->in)->len;
+	bzf->bzs.next_in = RSTRING_PTR(bzf->in);
+	bzf->bzs.avail_in = RSTRING_LEN(bzf->in);
     }
     if ((bzf->buflen - in) < (BZ_RB_BLOCKSIZE / 2)) {
 	bzf->buf = REALLOC_N(bzf->buf, char, bzf->buflen+BZ_RB_BLOCKSIZE+1);
@@ -780,7 +780,7 @@ bz_read_until(bzf, str, len, td1)
 	    if (nex) {
 		res = rb_str_cat(res, bzf->buf, nex);
 	    }
-	    if (RSTRING(res)->len) {
+	    if (RSTRING_LEN(res)) {
 		return res;
 	    }
 	    return Qnil;
@@ -845,8 +845,8 @@ bz_reader_read(argc, argv, obj)
     }
     while (1) {
 	total = bzf->bzs.avail_out;
-	if (n != -1 && (RSTRING(res)->len + total) >= n) {
-	    n -= RSTRING(res)->len;
+	if (n != -1 && (RSTRING_LEN(res) + total) >= n) {
+	    n -= RSTRING_LEN(res);
 	    res = rb_str_cat(res, bzf->bzs.next_out, n);
 	    bzf->bzs.next_out += n;
 	    bzf->bzs.avail_out -= n;
@@ -868,10 +868,10 @@ bz_getc(obj)
 {
     VALUE length = INT2FIX(1);
     VALUE res = bz_reader_read(1, &length, obj);
-    if (NIL_P(res) || RSTRING(res)->len == 0) {
+    if (NIL_P(res) || RSTRING_LEN(res) == 0) {
 	return EOF;
     }
-    return RSTRING(res)->ptr[0];
+    return RSTRING_PTR(res)[0];
 }
 
 static VALUE
@@ -911,15 +911,15 @@ bz_reader_ungets(obj, a)
     if (!bzf->buf) {
 	bz_raise(BZ_SEQUENCE_ERROR);
     }
-    if ((bzf->bzs.avail_out + RSTRING(a)->len) < bzf->buflen) {
-	bzf->bzs.next_out -= RSTRING(a)->len;
-	MEMCPY(bzf->bzs.next_out, RSTRING(a)->ptr, char, RSTRING(a)->len);
-	bzf->bzs.avail_out += RSTRING(a)->len;
+    if ((bzf->bzs.avail_out + RSTRING_LEN(a)) < bzf->buflen) {
+	bzf->bzs.next_out -= RSTRING_LEN(a);
+	MEMCPY(bzf->bzs.next_out, RSTRING_PTR(a), char, RSTRING_LEN(a));
+	bzf->bzs.avail_out += RSTRING_LEN(a);
     }
     else {
-	bzf->buf = REALLOC_N(bzf->buf, char, bzf->buflen + RSTRING(a)->len + 1);
-	MEMCPY(bzf->buf + bzf->buflen, RSTRING(a)->ptr, char,RSTRING(a)->len);
-	bzf->buflen += RSTRING(a)->len;
+	bzf->buf = REALLOC_N(bzf->buf, char, bzf->buflen + RSTRING_LEN(a) + 1);
+	MEMCPY(bzf->buf + bzf->buflen, RSTRING_PTR(a), char,RSTRING_LEN(a));
+	bzf->buflen += RSTRING_LEN(a);
 	bzf->buf[bzf->buflen] = '\0';
 	bzf->bzs.next_out = bzf->buf;
 	bzf->bzs.avail_out = bzf->buflen;
@@ -966,8 +966,8 @@ bz_reader_gets_internal(argc, argv, obj, td, init)
     if (NIL_P(rs)) {
 	return bz_reader_read(1, &rs, obj);
     }
-    rslen = RSTRING(rs)->len;
-    if (rs == rb_default_rs || (rslen == 1 && RSTRING(rs)->ptr[0] == '\n')) {
+    rslen = RSTRING_LEN(rs);
+    if (rs == rb_default_rs || (rslen == 1 && RSTRING_PTR(rs)[0] == '\n')) {
 	return bz_reader_gets(obj);
     }
 
@@ -977,7 +977,7 @@ bz_reader_gets_internal(argc, argv, obj, td, init)
 	rspara = 1;
     }
     else {
-	rsptr = RSTRING(rs)->ptr;
+	rsptr = RSTRING_PTR(rs);
 	rspara = 0;
     }
 
@@ -1024,13 +1024,13 @@ bz_reader_set_unused(obj, a)
     Check_Type(a, T_STRING);
     Get_BZ2(obj, bzf);
     if (!bzf->in) {
-	bzf->in = rb_str_new(RSTRING(a)->ptr, RSTRING(a)->len);
+	bzf->in = rb_str_new(RSTRING_PTR(a), RSTRING_LEN(a));
     }
     else {
-	bzf->in = rb_str_cat(bzf->in, RSTRING(a)->ptr, RSTRING(a)->len);
+	bzf->in = rb_str_cat(bzf->in, RSTRING_PTR(a), RSTRING_LEN(a));
     }
-    bzf->bzs.next_in = RSTRING(bzf->in)->ptr;
-    bzf->bzs.avail_in = RSTRING(bzf->in)->len;
+    bzf->bzs.next_in = RSTRING_PTR(bzf->in);
+    bzf->bzs.avail_in = RSTRING_LEN(bzf->in);
     return Qnil;
 }
 
@@ -1042,10 +1042,10 @@ bz_reader_getc(obj)
     VALUE len = INT2FIX(1);
 
     str = bz_reader_read(1, &len, obj);
-    if (NIL_P(str) || RSTRING(str)->len == 0) {
+    if (NIL_P(str) || RSTRING_LEN(str) == 0) {
 	return Qnil;
     }
-    return INT2FIX(RSTRING(str)->ptr[0] & 0xff);
+    return INT2FIX(RSTRING_PTR(str)[0] & 0xff);
 }
 
 static void
@@ -1411,7 +1411,7 @@ bz_str_read(argc, argv, obj)
     Data_Get_Struct(obj, struct bz_str, bzs);
     rb_scan_args(argc, argv, "01", &len);
     if (NIL_P(len)) {
-	count = RSTRING(bzs->str)->len;
+	count = RSTRING_LEN(bzs->str);
     }
     else {
 	count = NUM2INT(len);
@@ -1422,13 +1422,13 @@ bz_str_read(argc, argv, obj)
     if (!count || bzs->pos == -1) {
 	return Qnil;
     }
-    if ((bzs->pos + count) >= RSTRING(bzs->str)->len) {
-	res = rb_str_new(RSTRING(bzs->str)->ptr + bzs->pos, 
-			 RSTRING(bzs->str)->len - bzs->pos);
+    if ((bzs->pos + count) >= RSTRING_LEN(bzs->str)) {
+	res = rb_str_new(RSTRING_PTR(bzs->str) + bzs->pos, 
+			 RSTRING_LEN(bzs->str) - bzs->pos);
 	bzs->pos = -1;
     }
     else {
-	res = rb_str_new(RSTRING(bzs->str)->ptr + bzs->pos, count);
+	res = rb_str_new(RSTRING_PTR(bzs->str) + bzs->pos, count);
 	bzs->pos += count;
     }
     return res;
