@@ -21,6 +21,7 @@ Gem::Specification.new do |s|
      "bzip2-ruby.gemspec",
      "ext/bzip2.c",
      "ext/extconf.rb",
+     "lib/bzip2.rb",
      "spec/reader_spec.rb",
      "spec/spec_helper.rb",
      "spec/writer_spec.rb",
@@ -29,7 +30,7 @@ Gem::Specification.new do |s|
   ]
   s.homepage = %q{http://github.com/brianmario/bzip2-ruby}
   s.rdoc_options = ["--charset=UTF-8"]
-  s.require_paths = ["ext"]
+  s.require_paths = ["lib", "ext"]
   s.rubygems_version = %q{1.3.3}
   s.summary = %q{Ruby C bindings to libbzip2.}
   s.test_files = [
