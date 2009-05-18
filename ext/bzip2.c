@@ -1,7 +1,11 @@
 #include <ruby.h>
-#include <rubyio.h>
 #include <bzlib.h>
+#ifndef RUBY_19_COMPATIBILITY
+#include <rubyio.h>
 #include <version.h>
+#else
+#include <ruby/io.h>
+#endif
 
 static VALUE bz_cWriter, bz_cReader, bz_cInternal;
 static VALUE bz_eError, bz_eConfigError, bz_eEOZError;
@@ -112,15 +116,17 @@ bz_find_struct(obj, ptr, posp)
     for (i = 0; i < RARRAY_LEN(bz_internal_ary); i++) {
 	Data_Get_Struct(RARRAY_PTR(bz_internal_ary)[i], struct bz_iv, bziv);
 	if (ptr) {
-	    if (TYPE(bziv->io) == T_FILE && 
-		RFILE(bziv->io)->fptr == (OpenFile *)ptr) {
-		if (posp) *posp = i;
-		return bziv;
+#ifndef RUBY_19_COMPATIBILITY
+        if (TYPE(bziv->io) == T_FILE && RFILE(bziv->io)->fptr == (OpenFile *)ptr) {
+#else
+        if (TYPE(bziv->io) == T_FILE && RFILE(bziv->io)->fptr == (rb_io_t *)ptr) {
+#endif
+		    if (posp) *posp = i;
+		    return bziv;
 	    }
-	    else if (TYPE(bziv->io) == T_DATA &&
-		     DATA_PTR(bziv->io) == ptr) {
-		if (posp) *posp = i;
-		return bziv;
+	    else if (TYPE(bziv->io) == T_DATA && DATA_PTR(bziv->io) == ptr) {
+		    if (posp) *posp = i;
+		    return bziv;
 	    }
 	}
 	else if (bziv->io == obj) {
@@ -293,24 +299,35 @@ bz_io_data_finalize(ptr)
 
     bziv = bz_find_struct(0, ptr, &pos);
     if (bziv) {
-	rb_ary_delete_at(bz_internal_ary, pos);
-	Data_Get_Struct(bziv->bz2, struct bz_file, bzf);
-	rb_protect(bz_writer_internal_flush, (VALUE)bzf, 0);
-	RDATA(bziv->bz2)->dfree = ruby_xfree;
-	if (bziv->finalize) {
-	    (*bziv->finalize)(ptr);
-	}
-	else if (TYPE(bzf->io) == T_FILE) {
-	    OpenFile *file = (OpenFile *)ptr;
-	    if (file->f) {
-		fclose(file->f);
-		file->f = 0;
-	    }
-	    if (file->f2) {
-		fclose(file->f2);
-		file->f2 = 0;
-	    }
-	}
+        rb_ary_delete_at(bz_internal_ary, pos);
+        Data_Get_Struct(bziv->bz2, struct bz_file, bzf);
+        rb_protect(bz_writer_internal_flush, (VALUE)bzf, 0);
+        RDATA(bziv->bz2)->dfree = ruby_xfree;
+        if (bziv->finalize) {
+            (*bziv->finalize)(ptr);
+        } else if (TYPE(bzf->io) == T_FILE) {
+#ifndef RUBY_19_COMPATIBILITY
+            OpenFile *file = (OpenFile *)ptr;
+            if (file->f) {
+                fclose(file->f);
+                file->f = 0;
+            }
+            if (file->f2) {
+                fclose(file->f2);
+                file->f2 = 0;
+            }
+#else
+            rb_io_t *file = (rb_io_t *)ptr;
+            if (file->fd) {
+                fclose(file->fd);
+                file->fd = 0;
+            }
+            if (file->stdio_file) {
+                fclose(file->stdio_file);
+                file->stdio_file = 0;
+            }
+#endif
+        }
     }
 }
 
@@ -436,7 +453,11 @@ bz_writer_init(argc, argv, obj)
     else {
 	VALUE iv;
 	struct bz_iv *bziv;
-	OpenFile *fptr;
+#ifndef RUBY_19_COMPATIBILITY
+    OpenFile *fptr;
+#else
+    rb_io_t *fptr;
+#endif
 
 	rb_io_taint_check(a);
 	if (!rb_respond_to(a, id_write)) {
@@ -523,7 +544,7 @@ bz_writer_write(obj, a)
 	    rb_funcall(bzf->io, id_write, 1, rb_str_new(bzf->buf, n));
 	}
     }
-    return INT2NUM(RSTRING(a)->len);
+    return INT2NUM(RSTRING_LEN(a));
 }
 
 static VALUE
@@ -614,7 +635,11 @@ bz_reader_init(argc, argv, obj)
     }
     if (rb_respond_to(a, id_read)) {
 	if (TYPE(a) == T_FILE) {
-	    OpenFile *fptr;
+#ifndef RUBY_19_COMPATIBILITY
+        OpenFile *fptr;
+#else
+        rb_io_t *fptr;
+#endif
 
 	    GetOpenFile(a, fptr);
 	    rb_io_check_readable(fptr);
