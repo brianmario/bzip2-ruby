@@ -1496,12 +1496,12 @@ bz_proc_new(func, val)
                        rb_intern("to_proc"), 0, 0);
 }
 
-void Init_bzip2()
+void Init_bzip2_ext()
 {
     VALUE bz_mBzip2;
 
     if (rb_const_defined_at(rb_cObject, rb_intern("Bzip2"))) {
-	rb_raise(rb_eNameError, "module already defined");
+        rb_raise(rb_eNameError, "module already defined");
     }
 
     bz_internal_ary = rb_ary_new();

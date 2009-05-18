@@ -7,7 +7,7 @@ begin
     gem.email = "seniorlopez@gmail.com"
     gem.homepage = "http://github.com/brianmario/bzip2-ruby"
     gem.authors = ["Guy Decoux", "Brian Lopez"]
-    gem.require_paths = ["ext"]
+    gem.require_paths = ["lib", "ext"]
     gem.extra_rdoc_files = `git ls-files *.rdoc`.split("\n")
     gem.files = `git ls-files`.split("\n")
     gem.extensions = ["ext/extconf.rb"]
