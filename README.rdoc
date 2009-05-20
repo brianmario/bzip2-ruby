@@ -8,10 +8,6 @@ You may need to specify:
 
  --with-bz2-dir=<include file directory for libbzip2>
 
-== TODO
-
-* 1.9 compatibility - I could use some help with this as I think it's gonna require some Makefile trickery
-
 == Copying
  
  This extension module is copyrighted free software by Guy Decoux
@@ -25,3 +21,4 @@ You may need to specify:
 * Renamed compiled binary from "bz2" to "bzip2"
 * Renamed gem from "bz2" to "bzip2-ruby"
 * Converted original tests to rspec
+* 1.9 compatibility
