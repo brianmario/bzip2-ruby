@@ -37,11 +37,11 @@ struct bz_iv {
     void (*finalize)();
 };
 
-#define Get_BZ2(obj, bzf)			\
-    rb_io_taint_check(obj);			\
-    Data_Get_Struct(obj, struct bz_file, bzf);	\
-    if (!RTEST(bzf->io)) {			\
-	rb_raise(rb_eIOError, "closed IO");	\
+#define Get_BZ2(obj, bzf)           \
+    rb_io_taint_check(obj);         \
+    Data_Get_Struct(obj, struct bz_file, bzf);  \
+    if (!RTEST(bzf->io)) {          \
+    rb_raise(rb_eIOError, "closed IO"); \
     }
 
 static VALUE
@@ -54,37 +54,37 @@ bz_raise(error)
     exc = bz_eError;
     switch (error) {
     case BZ_SEQUENCE_ERROR:
-	msg = "uncorrect sequence"; 
-	break;
+    msg = "uncorrect sequence"; 
+    break;
     case BZ_PARAM_ERROR: 
-	msg = "parameter out of range";
-	break;
+    msg = "parameter out of range";
+    break;
     case BZ_MEM_ERROR: 
-	msg = "not enough memory is available"; 
-	break;
+    msg = "not enough memory is available"; 
+    break;
     case BZ_DATA_ERROR:
-	msg = "data integrity error is detected";
-	break;
+    msg = "data integrity error is detected";
+    break;
     case BZ_DATA_ERROR_MAGIC:
-	msg = "compressed stream does not start with the correct magic bytes";
-	break;
+    msg = "compressed stream does not start with the correct magic bytes";
+    break;
     case BZ_IO_ERROR: 
-	msg = "error reading or writing"; 
-	break;
+    msg = "error reading or writing"; 
+    break;
     case BZ_UNEXPECTED_EOF: 
-	exc = bz_eEOZError;
-	msg = "compressed file finishes before the logical end of stream is detected";
-	break;
+    exc = bz_eEOZError;
+    msg = "compressed file finishes before the logical end of stream is detected";
+    break;
     case BZ_OUTBUFF_FULL:
-	msg = "output buffer full";
-	break;
+    msg = "output buffer full";
+    break;
     case BZ_CONFIG_ERROR:
-	exc = bz_eConfigError;
-	msg = "library has been improperly compiled on your platform";
-	break;
+    exc = bz_eConfigError;
+    msg = "library has been improperly compiled on your platform";
+    break;
     default:
-	msg = "unknown error";
-	exc = bz_eError;
+    msg = "unknown error";
+    exc = bz_eError;
     }
     rb_raise(exc, msg);
 }
@@ -114,25 +114,25 @@ bz_find_struct(obj, ptr, posp)
     int i;
 
     for (i = 0; i < RARRAY_LEN(bz_internal_ary); i++) {
-	Data_Get_Struct(RARRAY_PTR(bz_internal_ary)[i], struct bz_iv, bziv);
-	if (ptr) {
+    Data_Get_Struct(RARRAY_PTR(bz_internal_ary)[i], struct bz_iv, bziv);
+    if (ptr) {
 #ifndef RUBY_19_COMPATIBILITY
         if (TYPE(bziv->io) == T_FILE && RFILE(bziv->io)->fptr == (OpenFile *)ptr) {
 #else
         if (TYPE(bziv->io) == T_FILE && RFILE(bziv->io)->fptr == (rb_io_t *)ptr) {
 #endif
-		    if (posp) *posp = i;
-		    return bziv;
-	    }
-	    else if (TYPE(bziv->io) == T_DATA && DATA_PTR(bziv->io) == ptr) {
-		    if (posp) *posp = i;
-		    return bziv;
-	    }
-	}
-	else if (bziv->io == obj) {
-	    if (posp) *posp = i;
-	    return bziv;
-	}
+            if (posp) *posp = i;
+            return bziv;
+        }
+        else if (TYPE(bziv->io) == T_DATA && DATA_PTR(bziv->io) == ptr) {
+            if (posp) *posp = i;
+            return bziv;
+        }
+    }
+    else if (bziv->io == obj) {
+        if (posp) *posp = i;
+        return bziv;
+    }
     }
     if (posp) *posp = -1;
     return 0;
@@ -145,34 +145,34 @@ bz_writer_internal_flush(bzf)
     int closed = 1;
 
     if (rb_respond_to(bzf->io, id_closed)) {
-	closed = RTEST(rb_funcall2(bzf->io, id_closed, 0, 0));
+    closed = RTEST(rb_funcall2(bzf->io, id_closed, 0, 0));
     }
     if (bzf->buf) {
-	if (!closed && bzf->state == BZ_OK) {
-	    bzf->bzs.next_in = NULL;
-	    bzf->bzs.avail_in = 0;
-	    do {
-		bzf->bzs.next_out = bzf->buf;
-		bzf->bzs.avail_out = bzf->buflen;
-		bzf->state = BZ2_bzCompress(&(bzf->bzs), BZ_FINISH);
-		if (bzf->state != BZ_FINISH_OK && 
-		    bzf->state != BZ_STREAM_END) {
-		    break;
-		}
-		if (bzf->bzs.avail_out < bzf->buflen) {
-		    rb_funcall(bzf->io, id_write, 1,
-			       rb_str_new(bzf->buf, 
-					  bzf->buflen - bzf->bzs.avail_out));
-		}
-	    } while (bzf->state != BZ_STREAM_END);
-	}
-	free(bzf->buf);
-	bzf->buf = 0;
-	BZ2_bzCompressEnd(&(bzf->bzs));
-	bzf->state = BZ_OK;
-	if (!closed && rb_respond_to(bzf->io, id_flush)) {
-	    rb_funcall2(bzf->io, id_flush, 0, 0);
-	}
+    if (!closed && bzf->state == BZ_OK) {
+        bzf->bzs.next_in = NULL;
+        bzf->bzs.avail_in = 0;
+        do {
+        bzf->bzs.next_out = bzf->buf;
+        bzf->bzs.avail_out = bzf->buflen;
+        bzf->state = BZ2_bzCompress(&(bzf->bzs), BZ_FINISH);
+        if (bzf->state != BZ_FINISH_OK && 
+            bzf->state != BZ_STREAM_END) {
+            break;
+        }
+        if (bzf->bzs.avail_out < bzf->buflen) {
+            rb_funcall(bzf->io, id_write, 1,
+                   rb_str_new(bzf->buf, 
+                      bzf->buflen - bzf->bzs.avail_out));
+        }
+        } while (bzf->state != BZ_STREAM_END);
+    }
+    free(bzf->buf);
+    bzf->buf = 0;
+    BZ2_bzCompressEnd(&(bzf->bzs));
+    bzf->state = BZ_OK;
+    if (!closed && rb_respond_to(bzf->io, id_flush)) {
+        rb_funcall2(bzf->io, id_flush, 0, 0);
+    }
     }
     return closed;
 }
@@ -188,25 +188,25 @@ bz_writer_internal_close(bzf)
     closed = bz_writer_internal_flush(bzf);
     bziv = bz_find_struct(bzf->io, 0, &pos);
     if (bziv) {
-	if (TYPE(bzf->io) == T_FILE) {
-	    RFILE(bzf->io)->fptr->finalize = bziv->finalize;
-	}
-	else if (TYPE(bziv->io) == T_DATA) {
-	    RDATA(bziv->io)->dfree = bziv->finalize;
-	}
-	RDATA(bziv->bz2)->dfree = ruby_xfree;
-	bziv->bz2 = 0;
-	rb_ary_delete_at(bz_internal_ary, pos);
+    if (TYPE(bzf->io) == T_FILE) {
+        RFILE(bzf->io)->fptr->finalize = bziv->finalize;
+    }
+    else if (TYPE(bziv->io) == T_DATA) {
+        RDATA(bziv->io)->dfree = bziv->finalize;
+    }
+    RDATA(bziv->bz2)->dfree = ruby_xfree;
+    bziv->bz2 = 0;
+    rb_ary_delete_at(bz_internal_ary, pos);
     }
     if (bzf->flags & BZ2_RB_CLOSE) {
-	bzf->flags &= ~BZ2_RB_CLOSE;
-	if (!closed && rb_respond_to(bzf->io, id_close)) {
-	    rb_funcall2(bzf->io, id_close, 0, 0);
-	}
-	res = Qnil;
+    bzf->flags &= ~BZ2_RB_CLOSE;
+    if (!closed && rb_respond_to(bzf->io, id_close)) {
+        rb_funcall2(bzf->io, id_close, 0, 0);
+    }
+    res = Qnil;
     }
     else {
-	res = bzf->io;
+    res = bzf->io;
     }
     bzf->io = Qnil;
     return res;
@@ -222,25 +222,25 @@ bz_internal_finalize(ary, obj)
     struct bz_file *bzf;
 
     for (i = 0; i < RARRAY_LEN(bz_internal_ary); i++) {
-	elem = RARRAY_PTR(bz_internal_ary)[i];
-	Data_Get_Struct(elem, struct bz_iv, bziv);
-	if (bziv->bz2) {
-	    RDATA(bziv->bz2)->dfree = ruby_xfree;
-	    if (TYPE(bziv->io) == T_FILE) {
-		RFILE(bziv->io)->fptr->finalize = bziv->finalize;
-	    }
-	    else if (TYPE(bziv->io) == T_DATA) {
-		RDATA(bziv->io)->dfree = bziv->finalize;
-	    }
-	    Data_Get_Struct(bziv->bz2, struct bz_file, bzf);
-	    closed = bz_writer_internal_flush(bzf);
-	    if (bzf->flags & BZ2_RB_CLOSE) {
-		bzf->flags &= ~BZ2_RB_CLOSE;
-		if (!closed && rb_respond_to(bzf->io, id_close)) {
-		    rb_funcall2(bzf->io, id_close, 0, 0);
-		}
-	    }
-	}
+    elem = RARRAY_PTR(bz_internal_ary)[i];
+    Data_Get_Struct(elem, struct bz_iv, bziv);
+    if (bziv->bz2) {
+        RDATA(bziv->bz2)->dfree = ruby_xfree;
+        if (TYPE(bziv->io) == T_FILE) {
+        RFILE(bziv->io)->fptr->finalize = bziv->finalize;
+        }
+        else if (TYPE(bziv->io) == T_DATA) {
+        RDATA(bziv->io)->dfree = bziv->finalize;
+        }
+        Data_Get_Struct(bziv->bz2, struct bz_file, bzf);
+        closed = bz_writer_internal_flush(bzf);
+        if (bzf->flags & BZ2_RB_CLOSE) {
+        bzf->flags &= ~BZ2_RB_CLOSE;
+        if (!closed && rb_respond_to(bzf->io, id_close)) {
+            rb_funcall2(bzf->io, id_close, 0, 0);
+        }
+        }
+    }
     }
     return Qnil;
 }
@@ -255,7 +255,7 @@ bz_writer_close(obj)
     Get_BZ2(obj, bzf);
     res = bz_writer_internal_close(bzf);
     if (!NIL_P(res) && (bzf->flags & BZ2_RB_INTERNAL)) {
-	RBASIC(res)->klass = rb_cString;
+    RBASIC(res)->klass = rb_cString;
     }
     return res;
 }
@@ -271,12 +271,12 @@ bz_writer_close_bang(obj)
     closed = bzf->flags & (BZ2_RB_INTERNAL|BZ2_RB_CLOSE);
     bz_writer_close(obj);
     if (!closed && rb_respond_to(bzf->io, id_close)) {
-	if (rb_respond_to(bzf->io, id_closed)) {
-	    closed = RTEST(rb_funcall2(bzf->io, id_closed, 0, 0));
-	}
-	if (!closed) {
-	    rb_funcall2(bzf->io, id_close, 0, 0);
-	}
+    if (rb_respond_to(bzf->io, id_closed)) {
+        closed = RTEST(rb_funcall2(bzf->io, id_closed, 0, 0));
+    }
+    if (!closed) {
+        rb_funcall2(bzf->io, id_close, 0, 0);
+    }
     }
     return Qnil;
 }
@@ -355,7 +355,7 @@ bz_writer_s_alloc(obj)
     struct bz_file *bzf;
     VALUE res;
     res = Data_Make_Struct(obj, struct bz_file, bz_file_mark, 
-			   bz_writer_free, bzf);
+               bz_writer_free, bzf);
     bzf->bzs.bzalloc = bz_malloc;
     bzf->bzs.bzfree = bz_free;
     bzf->blocks = DEFAULT_BLOCKS;
@@ -371,7 +371,7 @@ bz_writer_flush(obj)
 
     Get_BZ2(obj, bzf);
     if (bzf->flags & BZ2_RB_INTERNAL) {
-	return bz_writer_close(obj);
+    return bz_writer_close(obj);
     }
     bz_writer_internal_flush(bzf);
     return Qnil;
@@ -386,22 +386,22 @@ bz_writer_s_open(argc, argv, obj)
     struct bz_file *bzf;
 
     if (argc < 1) {
-	rb_raise(rb_eArgError, "invalid number of arguments");
+    rb_raise(rb_eArgError, "invalid number of arguments");
     }
     if (argc == 1) {
-	argv[0] = rb_funcall(rb_mKernel, id_open, 2, argv[0], 
-			     rb_str_new2("wb"));
+    argv[0] = rb_funcall(rb_mKernel, id_open, 2, argv[0], 
+                 rb_str_new2("wb"));
     }
     else {
-	argv[1] = rb_funcall2(rb_mKernel, id_open, 2, argv);
-	argv += 1;
-	argc -= 1;
+    argv[1] = rb_funcall2(rb_mKernel, id_open, 2, argv);
+    argv += 1;
+    argc -= 1;
     }
     res = rb_funcall2(obj, id_new, argc, argv);
     Data_Get_Struct(res, struct bz_file, bzf);
     bzf->flags |= BZ2_RB_CLOSE;
     if (rb_block_given_p()) {
-	return rb_ensure(rb_yield, res, bz_writer_close, res);
+    return rb_ensure(rb_yield, res, bz_writer_close, res);
     }
     return res;
 }
@@ -411,10 +411,10 @@ bz_str_write(obj, str)
     VALUE obj, str;
 {
     if (TYPE(str) != T_STRING) {
-	rb_raise(rb_eArgError, "expected a String");
+    rb_raise(rb_eArgError, "expected a String");
     }
     if (RSTRING_LEN(str)) {
-	rb_str_cat(obj, RSTRING_PTR(str), RSTRING_LEN(str));
+    rb_str_cat(obj, RSTRING_PTR(str), RSTRING_LEN(str));
     }
     return str;
 }
@@ -438,64 +438,64 @@ bz_writer_init(argc, argv, obj)
 
     switch(rb_scan_args(argc, argv, "03", &a, &b, &c)) {
     case 3:
-	work = NUM2INT(c);
-	/* ... */
+    work = NUM2INT(c);
+    /* ... */
     case 2:
-	blocks = NUM2INT(b);
+    blocks = NUM2INT(b);
     }
     Data_Get_Struct(obj, struct bz_file, bzf);
     if (NIL_P(a)) {
-	a = rb_str_new(0, 0);
-	rb_define_method(rb_singleton_class(a), "write", bz_str_write, 1);
-	rb_define_method(rb_singleton_class(a), "closed?", bz_str_closed, 0);
-	bzf->flags |= BZ2_RB_INTERNAL;
+    a = rb_str_new(0, 0);
+    rb_define_method(rb_singleton_class(a), "write", bz_str_write, 1);
+    rb_define_method(rb_singleton_class(a), "closed?", bz_str_closed, 0);
+    bzf->flags |= BZ2_RB_INTERNAL;
     }
     else {
-	VALUE iv;
-	struct bz_iv *bziv;
+    VALUE iv;
+    struct bz_iv *bziv;
 #ifndef RUBY_19_COMPATIBILITY
     OpenFile *fptr;
 #else
     rb_io_t *fptr;
 #endif
 
-	rb_io_taint_check(a);
-	if (!rb_respond_to(a, id_write)) {
-	    rb_raise(rb_eArgError, "first argument must respond to #write");
-	}
-	if (TYPE(a) == T_FILE) {
-	    GetOpenFile(a, fptr);
-	    rb_io_check_writable(fptr);
-	}
-	else if (rb_respond_to(a, id_closed)) {
-	    iv = rb_funcall2(a, id_closed, 0, 0);
-	    if (RTEST(iv)) {
-		rb_raise(rb_eArgError, "closed object");
-	    }
-	}
-	bziv = bz_find_struct(a, 0, 0);
-	if (bziv) {
-	    if (RTEST(bziv->bz2)) {
-		rb_raise(rb_eArgError, "invalid data type");
-	    }
-	    bziv->bz2 = obj;
-	}
-	else {
-	    iv = Data_Make_Struct(rb_cData, struct bz_iv, 0, free, bziv);
-	    bziv->io = a;
-	    bziv->bz2 = obj;
-	    rb_ary_push(bz_internal_ary, iv);
-	}
-	switch (TYPE(a)) {
-	case T_FILE:
-	    bziv->finalize = RFILE(a)->fptr->finalize;
-	    RFILE(a)->fptr->finalize = bz_io_data_finalize;
-	    break;
-	case T_DATA:
-	    bziv->finalize = RDATA(a)->dfree;
-	    RDATA(a)->dfree = bz_io_data_finalize;
-	    break;
-	}
+    rb_io_taint_check(a);
+    if (!rb_respond_to(a, id_write)) {
+        rb_raise(rb_eArgError, "first argument must respond to #write");
+    }
+    if (TYPE(a) == T_FILE) {
+        GetOpenFile(a, fptr);
+        rb_io_check_writable(fptr);
+    }
+    else if (rb_respond_to(a, id_closed)) {
+        iv = rb_funcall2(a, id_closed, 0, 0);
+        if (RTEST(iv)) {
+        rb_raise(rb_eArgError, "closed object");
+        }
+    }
+    bziv = bz_find_struct(a, 0, 0);
+    if (bziv) {
+        if (RTEST(bziv->bz2)) {
+        rb_raise(rb_eArgError, "invalid data type");
+        }
+        bziv->bz2 = obj;
+    }
+    else {
+        iv = Data_Make_Struct(rb_cData, struct bz_iv, 0, free, bziv);
+        bziv->io = a;
+        bziv->bz2 = obj;
+        rb_ary_push(bz_internal_ary, iv);
+    }
+    switch (TYPE(a)) {
+    case T_FILE:
+        bziv->finalize = RFILE(a)->fptr->finalize;
+        RFILE(a)->fptr->finalize = bz_io_data_finalize;
+        break;
+    case T_DATA:
+        bziv->finalize = RDATA(a)->dfree;
+        RDATA(a)->dfree = bz_io_data_finalize;
+        break;
+    }
     }
     bzf->io = a;
     bzf->blocks = blocks;
@@ -515,34 +515,34 @@ bz_writer_write(obj, a)
     a = rb_obj_as_string(a);
     Get_BZ2(obj, bzf);
     if (!bzf->buf) {
-	if (bzf->state != BZ_OK) {
-	    bz_raise(bzf->state);
-	}
-	bzf->state = BZ2_bzCompressInit(&(bzf->bzs), bzf->blocks,
-					0, bzf->work);
-	if (bzf->state != BZ_OK) {
-	    bz_writer_internal_flush(bzf);
-	    bz_raise(bzf->state);
-	}
-	bzf->buf = ALLOC_N(char, BZ_RB_BLOCKSIZE + 1);
-	bzf->buflen = BZ_RB_BLOCKSIZE;
-	bzf->buf[0] = bzf->buf[bzf->buflen] = '\0';
+    if (bzf->state != BZ_OK) {
+        bz_raise(bzf->state);
+    }
+    bzf->state = BZ2_bzCompressInit(&(bzf->bzs), bzf->blocks,
+                    0, bzf->work);
+    if (bzf->state != BZ_OK) {
+        bz_writer_internal_flush(bzf);
+        bz_raise(bzf->state);
+    }
+    bzf->buf = ALLOC_N(char, BZ_RB_BLOCKSIZE + 1);
+    bzf->buflen = BZ_RB_BLOCKSIZE;
+    bzf->buf[0] = bzf->buf[bzf->buflen] = '\0';
     }
     bzf->bzs.next_in = RSTRING_PTR(a);
     bzf->bzs.avail_in = RSTRING_LEN(a);
     while (bzf->bzs.avail_in) {
-	bzf->bzs.next_out = bzf->buf;
-	bzf->bzs.avail_out = bzf->buflen;
-	bzf->state = BZ2_bzCompress(&(bzf->bzs), BZ_RUN);
-	if (bzf->state == BZ_SEQUENCE_ERROR || bzf->state == BZ_PARAM_ERROR) {
-	    bz_writer_internal_flush(bzf);
-	    bz_raise(bzf->state);
-	}
-	bzf->state = BZ_OK;
-	if (bzf->bzs.avail_out < bzf->buflen) {
-	    n = bzf->buflen - bzf->bzs.avail_out;
-	    rb_funcall(bzf->io, id_write, 1, rb_str_new(bzf->buf, n));
-	}
+    bzf->bzs.next_out = bzf->buf;
+    bzf->bzs.avail_out = bzf->buflen;
+    bzf->state = BZ2_bzCompress(&(bzf->bzs), BZ_RUN);
+    if (bzf->state == BZ_SEQUENCE_ERROR || bzf->state == BZ_PARAM_ERROR) {
+        bz_writer_internal_flush(bzf);
+        bz_raise(bzf->state);
+    }
+    bzf->state = BZ_OK;
+    if (bzf->bzs.avail_out < bzf->buflen) {
+        n = bzf->buflen - bzf->bzs.avail_out;
+        rb_funcall(bzf->io, id_write, 1, rb_str_new(bzf->buf, n));
+    }
     }
     return INT2NUM(RSTRING_LEN(a));
 }
@@ -563,15 +563,15 @@ bz_compress(argc, argv, obj)
     VALUE bz2, str;
 
     if (!argc) {
-	rb_raise(rb_eArgError, "need a String to compress");
+    rb_raise(rb_eArgError, "need a String to compress");
     }
     str = rb_str_to_str(argv[0]);
     argv[0] = Qnil;
     bz2 = rb_funcall2(bz_cWriter, id_new, argc, argv);
     if (OBJ_TAINTED(str)) {
-	struct bz_file *bzf;
-	Data_Get_Struct(bz2, struct bz_file, bzf);
-	OBJ_TAINT(bzf->io);
+    struct bz_file *bzf;
+    Data_Get_Struct(bz2, struct bz_file, bzf);
+    OBJ_TAINT(bzf->io);
     }
     bz_writer_write(bz2, str);
     return bz_writer_close(bz2);
@@ -584,7 +584,7 @@ bz_reader_s_alloc(obj)
     struct bz_file *bzf;
     VALUE res;
     res = Data_Make_Struct(obj, struct bz_file, bz_file_mark, 
-			   ruby_xfree, bzf);
+               ruby_xfree, bzf);
     bzf->bzs.bzalloc = bz_malloc;
     bzf->bzs.bzfree = bz_free;
     bzf->blocks = DEFAULT_BLOCKS;
@@ -603,7 +603,7 @@ bz_reader_s_open(argc, argv, obj)
     struct bz_file *bzf;
 
     if (argc < 1) {
-	rb_raise(rb_eArgError, "invalid number of arguments");
+    rb_raise(rb_eArgError, "invalid number of arguments");
     }
     argv[0] = rb_funcall2(rb_mKernel, id_open, 1, argv);
     if (NIL_P(argv[0])) return Qnil;
@@ -611,7 +611,7 @@ bz_reader_s_open(argc, argv, obj)
     Data_Get_Struct(res, struct bz_file, bzf);
     bzf->flags |= BZ2_RB_CLOSE;
     if (rb_block_given_p()) {
-	return rb_ensure(rb_yield, res, bz_reader_close, res);
+    return rb_ensure(rb_yield, res, bz_reader_close, res);
     }
     return res;
 }
@@ -627,46 +627,46 @@ bz_reader_init(argc, argv, obj)
     int internal = 0;
 
     if (rb_scan_args(argc, argv, "11", &a, &b) == 2) {
-	small = RTEST(b);
+    small = RTEST(b);
     }
     rb_io_taint_check(a);
     if (OBJ_TAINTED(a)) {
-	OBJ_TAINT(obj);
+    OBJ_TAINT(obj);
     }
     if (rb_respond_to(a, id_read)) {
-	if (TYPE(a) == T_FILE) {
+    if (TYPE(a) == T_FILE) {
 #ifndef RUBY_19_COMPATIBILITY
         OpenFile *fptr;
 #else
         rb_io_t *fptr;
 #endif
 
-	    GetOpenFile(a, fptr);
-	    rb_io_check_readable(fptr);
-	}
-	else if (rb_respond_to(a, id_closed)) {
-	    VALUE iv = rb_funcall2(a, id_closed, 0, 0);
-	    if (RTEST(iv)) {
-		rb_raise(rb_eArgError, "closed object");
-	    }
-	}
+        GetOpenFile(a, fptr);
+        rb_io_check_readable(fptr);
+    }
+    else if (rb_respond_to(a, id_closed)) {
+        VALUE iv = rb_funcall2(a, id_closed, 0, 0);
+        if (RTEST(iv)) {
+        rb_raise(rb_eArgError, "closed object");
+        }
+    }
     }
     else {
-	struct bz_str *bzs;
-	VALUE res;
+    struct bz_str *bzs;
+    VALUE res;
 
-	if (!rb_respond_to(a, id_str)) {
-	    rb_raise(rb_eArgError, "first argument must respond to #read");
-	}
-	a = rb_funcall2(a, id_str, 0, 0);
-	if (TYPE(a) != T_STRING) {
-	    rb_raise(rb_eArgError, "#to_str must return a String");
-	}
-	res = Data_Make_Struct(bz_cInternal, struct bz_str, 
-			       bz_str_mark, ruby_xfree, bzs);
-	bzs->str = a;
-	a = res;
-	internal = BZ2_RB_INTERNAL;
+    if (!rb_respond_to(a, id_str)) {
+        rb_raise(rb_eArgError, "first argument must respond to #read");
+    }
+    a = rb_funcall2(a, id_str, 0, 0);
+    if (TYPE(a) != T_STRING) {
+        rb_raise(rb_eArgError, "#to_str must return a String");
+    }
+    res = Data_Make_Struct(bz_cInternal, struct bz_str, 
+                   bz_str_mark, ruby_xfree, bzs);
+    bzs->str = a;
+    a = res;
+    internal = BZ2_RB_INTERNAL;
     }
     Data_Get_Struct(obj, struct bz_file, bzf);
     bzf->io = a;
@@ -683,23 +683,23 @@ bz_get_bzf(obj)
 
     Get_BZ2(obj, bzf);
     if (!bzf->buf) {
-	if (bzf->state != BZ_OK) {
-	    bz_raise(bzf->state);
-	}
-	bzf->state = BZ2_bzDecompressInit(&(bzf->bzs), 0, bzf->small);
-	if (bzf->state != BZ_OK) {
-	    BZ2_bzDecompressEnd(&(bzf->bzs));
-	    bz_raise(bzf->state);
-	}
-	bzf->buf = ALLOC_N(char, BZ_RB_BLOCKSIZE + 1);
-	bzf->buflen = BZ_RB_BLOCKSIZE;
-	bzf->buf[0] = bzf->buf[bzf->buflen] = '\0';
-	bzf->bzs.total_out_hi32 = bzf->bzs.total_out_lo32 = 0;
-	bzf->bzs.next_out = bzf->buf;
-	bzf->bzs.avail_out = 0;
+    if (bzf->state != BZ_OK) {
+        bz_raise(bzf->state);
+    }
+    bzf->state = BZ2_bzDecompressInit(&(bzf->bzs), 0, bzf->small);
+    if (bzf->state != BZ_OK) {
+        BZ2_bzDecompressEnd(&(bzf->bzs));
+        bz_raise(bzf->state);
+    }
+    bzf->buf = ALLOC_N(char, BZ_RB_BLOCKSIZE + 1);
+    bzf->buflen = BZ_RB_BLOCKSIZE;
+    bzf->buf[0] = bzf->buf[bzf->buflen] = '\0';
+    bzf->bzs.total_out_hi32 = bzf->bzs.total_out_lo32 = 0;
+    bzf->bzs.next_out = bzf->buf;
+    bzf->bzs.avail_out = 0;
     }
     if (bzf->state == BZ_STREAM_END && !bzf->bzs.avail_out) {
-	return 0;
+    return 0;
     }
     return bzf;
 }
@@ -712,33 +712,33 @@ bz_next_available(bzf, in)
     bzf->bzs.next_out = bzf->buf;
     bzf->bzs.avail_out = 0;
     if (bzf->state == BZ_STREAM_END) {
-	return BZ_STREAM_END;
+    return BZ_STREAM_END;
     }
     if (!bzf->bzs.avail_in) {
-	bzf->in = rb_funcall(bzf->io, id_read, 1, INT2FIX(1024));
-	if (TYPE(bzf->in) != T_STRING || RSTRING_LEN(bzf->in) == 0) {
-	    BZ2_bzDecompressEnd(&(bzf->bzs));
-	    bzf->bzs.avail_out = 0;
-	    bzf->state = BZ_UNEXPECTED_EOF;
-	    bz_raise(bzf->state);
-	}
-	bzf->bzs.next_in = RSTRING_PTR(bzf->in);
-	bzf->bzs.avail_in = RSTRING_LEN(bzf->in);
+    bzf->in = rb_funcall(bzf->io, id_read, 1, INT2FIX(1024));
+    if (TYPE(bzf->in) != T_STRING || RSTRING_LEN(bzf->in) == 0) {
+        BZ2_bzDecompressEnd(&(bzf->bzs));
+        bzf->bzs.avail_out = 0;
+        bzf->state = BZ_UNEXPECTED_EOF;
+        bz_raise(bzf->state);
+    }
+    bzf->bzs.next_in = RSTRING_PTR(bzf->in);
+    bzf->bzs.avail_in = RSTRING_LEN(bzf->in);
     }
     if ((bzf->buflen - in) < (BZ_RB_BLOCKSIZE / 2)) {
-	bzf->buf = REALLOC_N(bzf->buf, char, bzf->buflen+BZ_RB_BLOCKSIZE+1);
-	bzf->buflen += BZ_RB_BLOCKSIZE;
-	bzf->buf[bzf->buflen] = '\0';
+    bzf->buf = REALLOC_N(bzf->buf, char, bzf->buflen+BZ_RB_BLOCKSIZE+1);
+    bzf->buflen += BZ_RB_BLOCKSIZE;
+    bzf->buf[bzf->buflen] = '\0';
     }
     bzf->bzs.avail_out = bzf->buflen - in;
     bzf->bzs.next_out = bzf->buf + in;
     bzf->state = BZ2_bzDecompress(&(bzf->bzs));
     if (bzf->state != BZ_OK) {
-	BZ2_bzDecompressEnd(&(bzf->bzs));
-	if (bzf->state != BZ_STREAM_END) {
-	    bzf->bzs.avail_out = 0;
-	    bz_raise(bzf->state);
-	}
+    BZ2_bzDecompressEnd(&(bzf->bzs));
+    if (bzf->state != BZ_STREAM_END) {
+        bzf->bzs.avail_out = 0;
+        bz_raise(bzf->state);
+    }
     }
     bzf->bzs.avail_out = bzf->buflen - bzf->bzs.avail_out;
     bzf->bzs.next_out = bzf->buf;
@@ -760,56 +760,56 @@ bz_read_until(bzf, str, len, td1)
 
     res = rb_str_new(0, 0);
     while (1) {
-	total = bzf->bzs.avail_out;
-	if (len == 1) {
-	    tx = memchr(bzf->bzs.next_out, *str, bzf->bzs.avail_out);
-	    if (tx) {
-		i = tx - bzf->bzs.next_out + len;
-		res = rb_str_cat(res, bzf->bzs.next_out, i);
-		bzf->bzs.next_out += i;
-		bzf->bzs.avail_out -= i;
-		return res;
-	    }
-	}
-	else {
-	    tx = bzf->bzs.next_out;
-	    end = bzf->bzs.next_out + bzf->bzs.avail_out;
-	    while (tx + len <= end) {
-		for (p = str, t = tx; p != pend; ++p, ++t) {
-		    if (*p != *t) break;
-		}
-		if (p == pend) {
-		    i = tx - bzf->bzs.next_out + len;
-		    res = rb_str_cat(res, bzf->bzs.next_out, i);
-		    bzf->bzs.next_out += i;
-		    bzf->bzs.avail_out -= i;
-		    return res;
-		}
-		if (td1) {
-		    tx += td1[(int)*(tx + len)];
-		}
-		else {
-		    tx += 1;
-		}
-	    }
-	}
-	nex = 0;
-	if (total) {
-	    nex = len - 1;
-	    res = rb_str_cat(res, bzf->bzs.next_out, total - nex);
-	    if (nex) {
-		MEMMOVE(bzf->buf, bzf->bzs.next_out + total - nex, char, nex);
-	    }
-	}
-	if (bz_next_available(bzf, nex) == BZ_STREAM_END) {
-	    if (nex) {
-		res = rb_str_cat(res, bzf->buf, nex);
-	    }
-	    if (RSTRING_LEN(res)) {
-		return res;
-	    }
-	    return Qnil;
-	}
+    total = bzf->bzs.avail_out;
+    if (len == 1) {
+        tx = memchr(bzf->bzs.next_out, *str, bzf->bzs.avail_out);
+        if (tx) {
+        i = tx - bzf->bzs.next_out + len;
+        res = rb_str_cat(res, bzf->bzs.next_out, i);
+        bzf->bzs.next_out += i;
+        bzf->bzs.avail_out -= i;
+        return res;
+        }
+    }
+    else {
+        tx = bzf->bzs.next_out;
+        end = bzf->bzs.next_out + bzf->bzs.avail_out;
+        while (tx + len <= end) {
+        for (p = str, t = tx; p != pend; ++p, ++t) {
+            if (*p != *t) break;
+        }
+        if (p == pend) {
+            i = tx - bzf->bzs.next_out + len;
+            res = rb_str_cat(res, bzf->bzs.next_out, i);
+            bzf->bzs.next_out += i;
+            bzf->bzs.avail_out -= i;
+            return res;
+        }
+        if (td1) {
+            tx += td1[(int)*(tx + len)];
+        }
+        else {
+            tx += 1;
+        }
+        }
+    }
+    nex = 0;
+    if (total) {
+        nex = len - 1;
+        res = rb_str_cat(res, bzf->bzs.next_out, total - nex);
+        if (nex) {
+        MEMMOVE(bzf->buf, bzf->bzs.next_out + total - nex, char, nex);
+        }
+    }
+    if (bz_next_available(bzf, nex) == BZ_STREAM_END) {
+        if (nex) {
+        res = rb_str_cat(res, bzf->buf, nex);
+        }
+        if (RSTRING_LEN(res)) {
+        return res;
+        }
+        return Qnil;
+    }
     }
     return Qnil;
 }
@@ -822,17 +822,17 @@ bz_read_while(bzf, c)
     char *end;
 
     while (1) {
-	end = bzf->bzs.next_out + bzf->bzs.avail_out;
-	while (bzf->bzs.next_out < end) {
-	    if (c != *bzf->bzs.next_out) {
-		bzf->bzs.avail_out = end -  bzf->bzs.next_out;
-		return *bzf->bzs.next_out;
-	    }
-	    ++bzf->bzs.next_out;
-	}
-	if (bz_next_available(bzf, 0) == BZ_STREAM_END) {
-	    return EOF;
-	}
+    end = bzf->bzs.next_out + bzf->bzs.avail_out;
+    while (bzf->bzs.next_out < end) {
+        if (c != *bzf->bzs.next_out) {
+        bzf->bzs.avail_out = end -  bzf->bzs.next_out;
+        return *bzf->bzs.next_out;
+        }
+        ++bzf->bzs.next_out;
+    }
+    if (bz_next_available(bzf, 0) == BZ_STREAM_END) {
+        return EOF;
+    }
     }
     return EOF;
 }
@@ -849,40 +849,40 @@ bz_reader_read(argc, argv, obj)
 
     rb_scan_args(argc, argv, "01", &length);
     if (NIL_P(length)) {
-	n = -1;
+    n = -1;
     }
     else {
-	n = NUM2INT(length);
-	if (n < 0) {
-	    rb_raise(rb_eArgError, "negative length %d given", n);
-	}
+    n = NUM2INT(length);
+    if (n < 0) {
+        rb_raise(rb_eArgError, "negative length %d given", n);
+    }
     }
     bzf = bz_get_bzf(obj);
     if (!bzf) {
-	return Qnil;
+    return Qnil;
     }
     res = rb_str_new(0, 0);
     if (OBJ_TAINTED(obj)) {
-	OBJ_TAINT(res);
+    OBJ_TAINT(res);
     }
     if (n == 0) {
-	return res;
+    return res;
     }
     while (1) {
-	total = bzf->bzs.avail_out;
-	if (n != -1 && (RSTRING_LEN(res) + total) >= n) {
-	    n -= RSTRING_LEN(res);
-	    res = rb_str_cat(res, bzf->bzs.next_out, n);
-	    bzf->bzs.next_out += n;
-	    bzf->bzs.avail_out -= n;
-	    return res;
-	}
-	if (total) {
-	    res = rb_str_cat(res, bzf->bzs.next_out, total);
-	}
-	if (bz_next_available(bzf, 0) == BZ_STREAM_END) {
-	    return res;
-	}
+    total = bzf->bzs.avail_out;
+    if (n != -1 && (RSTRING_LEN(res) + total) >= n) {
+        n -= RSTRING_LEN(res);
+        res = rb_str_cat(res, bzf->bzs.next_out, n);
+        bzf->bzs.next_out += n;
+        bzf->bzs.avail_out -= n;
+        return res;
+    }
+    if (total) {
+        res = rb_str_cat(res, bzf->bzs.next_out, total);
+    }
+    if (bz_next_available(bzf, 0) == BZ_STREAM_END) {
+        return res;
+    }
     }
     return Qnil;
 }
@@ -894,7 +894,7 @@ bz_getc(obj)
     VALUE length = INT2FIX(1);
     VALUE res = bz_reader_read(1, &length, obj);
     if (NIL_P(res) || RSTRING_LEN(res) == 0) {
-	return EOF;
+    return EOF;
     }
     return RSTRING_PTR(res)[0];
 }
@@ -908,19 +908,19 @@ bz_reader_ungetc(obj, a)
 
     Get_BZ2(obj, bzf);
     if (!bzf->buf) {
-	bz_raise(BZ_SEQUENCE_ERROR);
+    bz_raise(BZ_SEQUENCE_ERROR);
     }
     if (bzf->bzs.avail_out < bzf->buflen) {
-	bzf->bzs.next_out -= 1;
-	bzf->bzs.next_out[0] = c;
-	bzf->bzs.avail_out += 1;
+    bzf->bzs.next_out -= 1;
+    bzf->bzs.next_out[0] = c;
+    bzf->bzs.avail_out += 1;
     }
     else {
-	bzf->buf = REALLOC_N(bzf->buf, char, bzf->buflen + 2);
-	bzf->buf[bzf->buflen++] = c;
-	bzf->buf[bzf->buflen] = '\0';
-	bzf->bzs.next_out = bzf->buf;
-	bzf->bzs.avail_out = bzf->buflen;
+    bzf->buf = REALLOC_N(bzf->buf, char, bzf->buflen + 2);
+    bzf->buf[bzf->buflen++] = c;
+    bzf->buf[bzf->buflen] = '\0';
+    bzf->bzs.next_out = bzf->buf;
+    bzf->bzs.avail_out = bzf->buflen;
     }
     return Qnil;
 }
@@ -934,20 +934,20 @@ bz_reader_ungets(obj, a)
     Check_Type(a, T_STRING);
     Get_BZ2(obj, bzf);
     if (!bzf->buf) {
-	bz_raise(BZ_SEQUENCE_ERROR);
+    bz_raise(BZ_SEQUENCE_ERROR);
     }
     if ((bzf->bzs.avail_out + RSTRING_LEN(a)) < bzf->buflen) {
-	bzf->bzs.next_out -= RSTRING_LEN(a);
-	MEMCPY(bzf->bzs.next_out, RSTRING_PTR(a), char, RSTRING_LEN(a));
-	bzf->bzs.avail_out += RSTRING_LEN(a);
+    bzf->bzs.next_out -= RSTRING_LEN(a);
+    MEMCPY(bzf->bzs.next_out, RSTRING_PTR(a), char, RSTRING_LEN(a));
+    bzf->bzs.avail_out += RSTRING_LEN(a);
     }
     else {
-	bzf->buf = REALLOC_N(bzf->buf, char, bzf->buflen + RSTRING_LEN(a) + 1);
-	MEMCPY(bzf->buf + bzf->buflen, RSTRING_PTR(a), char,RSTRING_LEN(a));
-	bzf->buflen += RSTRING_LEN(a);
-	bzf->buf[bzf->buflen] = '\0';
-	bzf->bzs.next_out = bzf->buf;
-	bzf->bzs.avail_out = bzf->buflen;
+    bzf->buf = REALLOC_N(bzf->buf, char, bzf->buflen + RSTRING_LEN(a) + 1);
+    MEMCPY(bzf->buf + bzf->buflen, RSTRING_PTR(a), char,RSTRING_LEN(a));
+    bzf->buflen += RSTRING_LEN(a);
+    bzf->buf[bzf->buflen] = '\0';
+    bzf->bzs.next_out = bzf->buf;
+    bzf->bzs.avail_out = bzf->buflen;
     }
     return Qnil;
 }
@@ -961,11 +961,11 @@ bz_reader_gets(obj)
 
     bzf = bz_get_bzf(obj);
     if (bzf) {
-	str = bz_read_until(bzf, "\n", 1, 0);
-	if (!NIL_P(str)) {
-	    bzf->lineno++;
-	    OBJ_TAINT(str);
-	}
+    str = bz_read_until(bzf, "\n", 1, 0);
+    if (!NIL_P(str)) {
+        bzf->lineno++;
+        OBJ_TAINT(str);
+    }
     }
     return str;
 }
@@ -983,59 +983,59 @@ bz_reader_gets_internal(argc, argv, obj, td, init)
 
     rs = rb_rs;
     if (argc) {
-	rb_scan_args(argc, argv, "1", &rs);
-	if (!NIL_P(rs)) {
-	    Check_Type(rs, T_STRING);
-	}
+    rb_scan_args(argc, argv, "1", &rs);
+    if (!NIL_P(rs)) {
+        Check_Type(rs, T_STRING);
+    }
     }
     if (NIL_P(rs)) {
-	return bz_reader_read(1, &rs, obj);
+    return bz_reader_read(1, &rs, obj);
     }
     rslen = RSTRING_LEN(rs);
     if (rs == rb_default_rs || (rslen == 1 && RSTRING_PTR(rs)[0] == '\n')) {
-	return bz_reader_gets(obj);
+    return bz_reader_gets(obj);
     }
 
     if (rslen == 0) {
-	rsptr = "\n\n";
-	rslen = 2;
-	rspara = 1;
+    rsptr = "\n\n";
+    rslen = 2;
+    rspara = 1;
     }
     else {
-	rsptr = RSTRING_PTR(rs);
-	rspara = 0;
+    rsptr = RSTRING_PTR(rs);
+    rspara = 0;
     }
 
     bzf = bz_get_bzf(obj);
     if (!bzf) {
-	return Qnil;
+    return Qnil;
     }
     if (rspara) {
-	bz_read_while(bzf, '\n');
+    bz_read_while(bzf, '\n');
     }
     td1 = 0;
     if (rslen != 1) {
-	if (init) {
-	    int i;
+    if (init) {
+        int i;
 
-	    for (i = 0; i < ASIZE; i++) {
-		td[i] = rslen + 1;
-	    }
-	    for (i = 0; i < rslen; i++) {
-		td[(int)*(rsptr + i)] = rslen - i;
-	    }
-	}
-	td1 = td;
+        for (i = 0; i < ASIZE; i++) {
+        td[i] = rslen + 1;
+        }
+        for (i = 0; i < rslen; i++) {
+        td[(int)*(rsptr + i)] = rslen - i;
+        }
+    }
+    td1 = td;
     }
 
     res = bz_read_until(bzf, rsptr, rslen, td1);
     if (rspara) {
-	bz_read_while(bzf, '\n');
+    bz_read_while(bzf, '\n');
     }
 
     if (!NIL_P(res)) {
-	bzf->lineno++;
-	OBJ_TAINT(res);
+    bzf->lineno++;
+    OBJ_TAINT(res);
     }
     return res;
 }
@@ -1049,10 +1049,10 @@ bz_reader_set_unused(obj, a)
     Check_Type(a, T_STRING);
     Get_BZ2(obj, bzf);
     if (!bzf->in) {
-	bzf->in = rb_str_new(RSTRING_PTR(a), RSTRING_LEN(a));
+    bzf->in = rb_str_new(RSTRING_PTR(a), RSTRING_LEN(a));
     }
     else {
-	bzf->in = rb_str_cat(bzf->in, RSTRING_PTR(a), RSTRING_LEN(a));
+    bzf->in = rb_str_cat(bzf->in, RSTRING_PTR(a), RSTRING_LEN(a));
     }
     bzf->bzs.next_in = RSTRING_PTR(bzf->in);
     bzf->bzs.avail_in = RSTRING_LEN(bzf->in);
@@ -1068,7 +1068,7 @@ bz_reader_getc(obj)
 
     str = bz_reader_read(1, &len, obj);
     if (NIL_P(str) || RSTRING_LEN(str) == 0) {
-	return Qnil;
+    return Qnil;
     }
     return INT2FIX(RSTRING_PTR(str)[0] & 0xff);
 }
@@ -1086,7 +1086,7 @@ bz_reader_readchar(obj)
     VALUE res = bz_reader_getc(obj);
 
     if (NIL_P(res)) {
-	bz_eoz_error();
+    bz_eoz_error();
     }
     return res;
 }
@@ -1100,7 +1100,7 @@ bz_reader_gets_m(argc, argv, obj)
     VALUE str = bz_reader_gets_internal(argc, argv, obj, td, Qtrue);
 
     if (!NIL_P(str)) {
-	rb_lastline_set(str);
+    rb_lastline_set(str);
     }
     return str;
 }
@@ -1113,7 +1113,7 @@ bz_reader_readline(argc, argv, obj)
     VALUE res = bz_reader_gets_m(argc, argv, obj);
 
     if (NIL_P(res)) {
-	bz_eoz_error();
+    bz_eoz_error();
     }
     return res;
 }
@@ -1129,8 +1129,8 @@ bz_reader_readlines(argc, argv, obj)
     in = Qtrue;
     ary = rb_ary_new();
     while (!NIL_P(line = bz_reader_gets_internal(argc, argv, obj, td, in))) {
-	in = Qfalse;
-	rb_ary_push(ary, line);
+    in = Qfalse;
+    rb_ary_push(ary, line);
     }
     return ary;
 }
@@ -1145,8 +1145,8 @@ bz_reader_each_line(argc, argv, obj)
 
     in = Qtrue;
     while (!NIL_P(line = bz_reader_gets_internal(argc, argv, obj, td, in))) {
-	in = Qfalse;
-	rb_yield(line);
+    in = Qfalse;
+    rb_yield(line);
     }
     return obj;
 }
@@ -1158,7 +1158,7 @@ bz_reader_each_byte(obj)
     int c;
 
     while ((c = bz_getc(obj)) != EOF) {
-	rb_yield(INT2FIX(c & 0xff));
+    rb_yield(INT2FIX(c & 0xff));
     }
     return obj;
 }
@@ -1172,14 +1172,14 @@ bz_reader_unused(obj)
 
     Get_BZ2(obj, bzf);
     if (!bzf->in || bzf->state != BZ_STREAM_END) {
-	return Qnil;
+    return Qnil;
     }
     if (bzf->bzs.avail_in) {
-	res = rb_tainted_str_new(bzf->bzs.next_in, bzf->bzs.avail_in);
-	bzf->bzs.avail_in = 0;
+    res = rb_tainted_str_new(bzf->bzs.next_in, bzf->bzs.avail_in);
+    bzf->bzs.avail_in = 0;
     }
     else {
-	res = rb_tainted_str_new(0, 0);
+    res = rb_tainted_str_new(0, 0);
     }
     return res;
 }
@@ -1192,10 +1192,10 @@ bz_reader_eoz(obj)
 
     Get_BZ2(obj, bzf);
     if (!bzf->in || !bzf->buf) {
-	return Qnil;
+    return Qnil;
     }
     if (bzf->state == BZ_STREAM_END && !bzf->bzs.avail_out) {
-	return Qtrue;
+    return Qtrue;
     }
     return Qfalse;
 }
@@ -1209,20 +1209,20 @@ bz_reader_eof(obj)
 
     res = bz_reader_eoz(obj);
     if (RTEST(res)) {
-	Get_BZ2(obj, bzf);
-	if (bzf->bzs.avail_in) {
-	    res = Qfalse;
-	}
-	else {
-	    res = bz_reader_getc(obj);
-	    if (NIL_P(res)) {
-		res = Qtrue;
-	    }
-	    else {
-		bz_reader_ungetc(res);
-		res = Qfalse;
-	    }
-	}
+    Get_BZ2(obj, bzf);
+    if (bzf->bzs.avail_in) {
+        res = Qfalse;
+    }
+    else {
+        res = bz_reader_getc(obj);
+        if (NIL_P(res)) {
+        res = Qtrue;
+        }
+        else {
+        bz_reader_ungetc(res);
+        res = Qfalse;
+        }
+    }
     }
     return res;
 }
@@ -1246,27 +1246,27 @@ bz_reader_close(obj)
 
     Get_BZ2(obj, bzf);
     if (bzf->buf) {
-	free(bzf->buf);
-	bzf->buf = 0;
+    free(bzf->buf);
+    bzf->buf = 0;
     }
     if (bzf->state == BZ_OK) {
-	BZ2_bzDecompressEnd(&(bzf->bzs));
+    BZ2_bzDecompressEnd(&(bzf->bzs));
     }
     if (bzf->flags & BZ2_RB_CLOSE) {
-	int closed = 0;
-	if (rb_respond_to(bzf->io, id_closed)) {
-	    VALUE iv = rb_funcall2(bzf->io, id_closed, 0, 0);
-	    closed = RTEST(iv);
-	}
-	if (!closed && rb_respond_to(bzf->io, id_close)) {
-	    rb_funcall2(bzf->io, id_close, 0, 0);
-	}
+    int closed = 0;
+    if (rb_respond_to(bzf->io, id_closed)) {
+        VALUE iv = rb_funcall2(bzf->io, id_closed, 0, 0);
+        closed = RTEST(iv);
+    }
+    if (!closed && rb_respond_to(bzf->io, id_close)) {
+        rb_funcall2(bzf->io, id_close, 0, 0);
+    }
     }
     if (bzf->flags & (BZ2_RB_CLOSE|BZ2_RB_INTERNAL)) {
-	res = Qnil;
+    res = Qnil;
     }
     else {
-	res = bzf->io;
+    res = bzf->io;
     }
     bzf->io = 0;
     return res;
@@ -1280,8 +1280,8 @@ bz_reader_finish(obj)
 
     Get_BZ2(obj, bzf);
     if (bzf->buf) {
-	rb_funcall2(obj, id_read, 0, 0);
-	free(bzf->buf);
+    rb_funcall2(obj, id_read, 0, 0);
+    free(bzf->buf);
     }
     bzf->buf = 0;
     bzf->state = BZ_OK;
@@ -1299,12 +1299,12 @@ bz_reader_close_bang(obj)
     closed = bzf->flags & (BZ2_RB_CLOSE|BZ2_RB_INTERNAL);
     bz_reader_close(obj);
     if (!closed && rb_respond_to(bzf->io, id_close)) {
-	if (rb_respond_to(bzf->io, id_closed)) {
-	    closed = RTEST(rb_funcall2(bzf->io, id_closed, 0, 0));
-	}
-	if (!closed) {
-	    rb_funcall2(bzf->io, id_close, 0, 0);
-	}
+    if (rb_respond_to(bzf->io, id_closed)) {
+        closed = RTEST(rb_funcall2(bzf->io, id_closed, 0, 0));
+    }
+    if (!closed) {
+        rb_funcall2(bzf->io, id_close, 0, 0);
+    }
     }
     return Qnil;
 }
@@ -1324,9 +1324,9 @@ bz_reader_foreach_line(arg)
 
     in = Qtrue;
     while (!NIL_P(str = bz_reader_gets_internal(arg->argc, &arg->sep,
-						arg->obj, td, in))) {
-	in = Qfalse;
-	rb_yield(str);
+                        arg->obj, td, in))) {
+    in = Qfalse;
+    rb_yield(str);
     }
     return Qnil;
 }
@@ -1341,7 +1341,7 @@ bz_reader_s_foreach(argc, argv, obj)
     struct bz_file *bzf;
 
     if (!rb_block_given_p()) {
-	rb_raise(rb_eArgError, "call out of a block");
+    rb_raise(rb_eArgError, "call out of a block");
     }
     rb_scan_args(argc, argv, "11", &fname, &sep);
     Check_SafeStr(fname);
@@ -1365,9 +1365,9 @@ bz_reader_i_readlines(arg)
     in = Qtrue;
     res = rb_ary_new();
     while (!NIL_P(str = bz_reader_gets_internal(arg->argc, &arg->sep,
-						arg->obj, td, in))) {
-	in = Qfalse;
-	rb_ary_push(res, str);
+                        arg->obj, td, in))) {
+    in = Qfalse;
+    rb_ary_push(res, str);
     }
     return res;
 }
@@ -1436,25 +1436,25 @@ bz_str_read(argc, argv, obj)
     Data_Get_Struct(obj, struct bz_str, bzs);
     rb_scan_args(argc, argv, "01", &len);
     if (NIL_P(len)) {
-	count = RSTRING_LEN(bzs->str);
+    count = RSTRING_LEN(bzs->str);
     }
     else {
-	count = NUM2INT(len);
-	if (count < 0) {
-	    rb_raise(rb_eArgError, "negative length %d given", count);
-	}
+    count = NUM2INT(len);
+    if (count < 0) {
+        rb_raise(rb_eArgError, "negative length %d given", count);
+    }
     }
     if (!count || bzs->pos == -1) {
-	return Qnil;
+    return Qnil;
     }
     if ((bzs->pos + count) >= RSTRING_LEN(bzs->str)) {
-	res = rb_str_new(RSTRING_PTR(bzs->str) + bzs->pos, 
-			 RSTRING_LEN(bzs->str) - bzs->pos);
-	bzs->pos = -1;
+    res = rb_str_new(RSTRING_PTR(bzs->str) + bzs->pos, 
+             RSTRING_LEN(bzs->str) - bzs->pos);
+    bzs->pos = -1;
     }
     else {
-	res = rb_str_new(RSTRING_PTR(bzs->str) + bzs->pos, count);
-	bzs->pos += count;
+    res = rb_str_new(RSTRING_PTR(bzs->str) + bzs->pos, count);
+    bzs->pos += count;
     }
     return res;
 }
@@ -1467,7 +1467,7 @@ bz_uncompress(argc, argv, obj)
     VALUE bz2, nilv = Qnil;
 
     if (!argc) {
-	rb_raise(rb_eArgError, "need a String to Uncompress");
+    rb_raise(rb_eArgError, "need a String to Uncompress");
     }
     argv[0] = rb_str_to_str(argv[0]);
     bz2 = rb_funcall2(bz_cReader, id_new, argc, argv);
@@ -1507,8 +1507,8 @@ void Init_bzip2_ext()
     bz_internal_ary = rb_ary_new();
     rb_global_variable(&bz_internal_ary);
     rb_funcall(rb_const_get(rb_cObject, rb_intern("ObjectSpace")), 
-	       rb_intern("define_finalizer"), 2, bz_internal_ary,
-	       bz_proc_new(bz_internal_finalize, 0));
+           rb_intern("define_finalizer"), 2, bz_internal_ary,
+           bz_proc_new(bz_internal_finalize, 0));
 
     id_new = rb_intern("new");
     id_write = rb_intern("write");
