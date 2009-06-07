@@ -54,7 +54,7 @@ bz_raise(error)
     exc = bz_eError;
     switch (error) {
     case BZ_SEQUENCE_ERROR:
-    msg = "uncorrect sequence"; 
+    msg = "incorrect sequence"; 
     break;
     case BZ_PARAM_ERROR: 
     msg = "parameter out of range";
