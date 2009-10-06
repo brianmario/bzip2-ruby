@@ -18,6 +18,20 @@ static ID id_closed, id_close, id_str;
 #define BZ2_RB_CLOSE    1
 #define BZ2_RB_INTERNAL 2
 
+// Older versions of Ruby (< 1.8.6) need these
+#ifndef RSTRING_PTR
+#define RSTRING_PTR(s) (RSTRING(s)->ptr)
+#endif
+#ifndef RSTRING_LEN
+#define RSTRING_LEN(s) (RSTRING(s)->len)
+#endif
+#ifndef RARRAY_PTR
+#define RARRAY_PTR(s) (RARRAY(s)->ptr)
+#endif
+#ifndef RARRAY_LEN
+#define RARRAY_LEN(s) (RARRAY(s)->len)
+#endif
+
 struct bz_file {
     bz_stream bzs;
     VALUE in, io;
