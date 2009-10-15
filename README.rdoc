@@ -2,7 +2,13 @@
 
 == Installation
 
- sudo gem install brianmario-bzip2-ruby -s http://gems.github.com/
+First make sure you’ve got Gemcutter in your sources list:
+
+ gem sources -a http://gemcutter.org
+
+Then go ahead and install it as usual:
+
+ sudo gem install bzip2-ruby
  
 You may need to specify:
 
