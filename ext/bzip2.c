@@ -184,7 +184,7 @@ static VALUE bz_writer_internal_close(struct bz_file *bzf) {
         } else if (TYPE(bziv->io) == T_DATA) {
             RDATA(bziv->io)->dfree = bziv->finalize;
         }
-        RDATA(bziv->bz2)->dfree = ruby_xfree;
+        RDATA(bziv->bz2)->dfree = free;
         bziv->bz2 = 0;
         rb_ary_delete_at(bz_internal_ary, pos);
     }
@@ -211,7 +211,7 @@ static VALUE bz_internal_finalize(VALUE ary, VALUE obj) {
         elem = RARRAY_PTR(bz_internal_ary)[i];
         Data_Get_Struct(elem, struct bz_iv, bziv);
         if (bziv->bz2) {
-            RDATA(bziv->bz2)->dfree = ruby_xfree;
+            RDATA(bziv->bz2)->dfree = free;
             if (TYPE(bziv->io) == T_FILE) {
                 RFILE(bziv->io)->fptr->finalize = bziv->finalize;
             } else if (TYPE(bziv->io) == T_DATA) {
@@ -262,7 +262,7 @@ static VALUE bz_writer_close_bang(VALUE obj) {
 
 static void bz_writer_free(struct bz_file *bzf) {
     bz_writer_internal_close(bzf);
-    ruby_xfree(bzf);
+    free(bzf);
 }
 
 static void bz_io_data_finalize(void *ptr) {
@@ -275,7 +275,7 @@ static void bz_io_data_finalize(void *ptr) {
         rb_ary_delete_at(bz_internal_ary, pos);
         Data_Get_Struct(bziv->bz2, struct bz_file, bzf);
         rb_protect((VALUE (*)(VALUE))bz_writer_internal_flush, (VALUE)bzf, 0);
-        RDATA(bziv->bz2)->dfree = ruby_xfree;
+        RDATA(bziv->bz2)->dfree = free;
         if (bziv->finalize) {
             (*bziv->finalize)(ptr);
         } else if (TYPE(bzf->io) == T_FILE) {
@@ -305,11 +305,11 @@ static void bz_io_data_finalize(void *ptr) {
 }
 
 static void * bz_malloc(void *opaque, int m, int n) {
-    return ruby_xmalloc(m * n);
+    return malloc(m * n);
 }
 
 static void bz_free(void *opaque, void *p) {
-    ruby_xfree(p);
+    free(p);
 }
 
 #define DEFAULT_BLOCKS 9
@@ -344,7 +344,7 @@ static VALUE bz_writer_s_open(int argc, VALUE *argv, VALUE obj) {
         rb_raise(rb_eArgError, "invalid number of arguments");
     }
     if (argc == 1) {
-        argv[0] = rb_funcall(rb_mKernel, id_open, 2, argv[0], 
+        argv[0] = rb_funcall(rb_mKernel, id_open, 2, argv[0],
             rb_str_new2("wb"));
     } else {
         argv[1] = rb_funcall2(rb_mKernel, id_open, 2, argv);
@@ -511,7 +511,7 @@ static VALUE bz_compress(int argc, VALUE *argv, VALUE obj) {
 static VALUE bz_reader_s_alloc(VALUE obj) {
     struct bz_file *bzf;
     VALUE res;
-    res = Data_Make_Struct(obj, struct bz_file, bz_file_mark, ruby_xfree, bzf);
+    res = Data_Make_Struct(obj, struct bz_file, bz_file_mark, free, bzf);
     bzf->bzs.bzalloc = bz_malloc;
     bzf->bzs.bzfree = bz_free;
     bzf->blocks = DEFAULT_BLOCKS;
@@ -581,8 +581,8 @@ static VALUE bz_reader_init(int argc, VALUE *argv, VALUE obj) {
         if (TYPE(a) != T_STRING) {
             rb_raise(rb_eArgError, "#to_str must return a String");
         }
-        res = Data_Make_Struct(bz_cInternal, struct bz_str, 
-            bz_str_mark, ruby_xfree, bzs);
+        res = Data_Make_Struct(bz_cInternal, struct bz_str,
+            bz_str_mark, free, bzs);
         bzs->str = a;
         a = res;
         internal = BZ2_RB_INTERNAL;
@@ -1241,7 +1241,7 @@ static VALUE bz_str_read(int argc, VALUE *argv, VALUE obj) {
         return Qnil;
     }
     if ((bzs->pos + count) >= RSTRING_LEN(bzs->str)) {
-        res = rb_str_new(RSTRING_PTR(bzs->str) + bzs->pos, 
+        res = rb_str_new(RSTRING_PTR(bzs->str) + bzs->pos,
             RSTRING_LEN(bzs->str) - bzs->pos);
         bzs->pos = -1;
     } else {
@@ -1312,7 +1312,7 @@ void Init_bzip2_ext() {
     rb_define_alloc_func(bz_cWriter, bz_writer_s_alloc);
 #else
     rb_define_singleton_method(bz_cWriter, "allocate", bz_writer_s_alloc, 0);
-#endif    
+#endif
     rb_define_singleton_method(bz_cWriter, "new", bz_s_new, -1);
     rb_define_singleton_method(bz_cWriter, "open", bz_writer_s_open, -1);
     rb_define_method(bz_cWriter, "initialize", bz_writer_init, -1);
