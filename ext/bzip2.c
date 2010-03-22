@@ -36,7 +36,7 @@ struct bz_file {
     bz_stream bzs;
     VALUE in, io;
     char *buf;
-    int buflen;
+    unsigned int buflen;
     int blocks, work, small;
     int flags, lineno, state;
 };
@@ -274,7 +274,7 @@ static void bz_io_data_finalize(void *ptr) {
     if (bziv) {
         rb_ary_delete_at(bz_internal_ary, pos);
         Data_Get_Struct(bziv->bz2, struct bz_file, bzf);
-        rb_protect(bz_writer_internal_flush, (VALUE)bzf, 0);
+        rb_protect((VALUE (*)(VALUE))bz_writer_internal_flush, (VALUE)bzf, 0);
         RDATA(bziv->bz2)->dfree = ruby_xfree;
         if (bziv->finalize) {
             (*bziv->finalize)(ptr);
@@ -430,7 +430,7 @@ static VALUE bz_writer_init(int argc, VALUE *argv, VALUE obj) {
         switch (TYPE(a)) {
             case T_FILE:
                 bziv->finalize = RFILE(a)->fptr->finalize;
-                RFILE(a)->fptr->finalize = bz_io_data_finalize;
+                RFILE(a)->fptr->finalize = (void (*)(struct rb_io_t *, int))bz_io_data_finalize;
                 break;
             case T_DATA:
                 bziv->finalize = RDATA(a)->dfree;
