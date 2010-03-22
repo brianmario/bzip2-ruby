@@ -2,7 +2,7 @@
 
 * Updated to support Ruby 1.8.5
 
-== 0.2.5 ???
+== 0.2.5 2009-06-07
 
 * initial conversion of original tests over to rspec
 
