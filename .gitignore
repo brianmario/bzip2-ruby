@@ -1,0 +1,7 @@
+_10lines_
+ext/Makefile
+ext/*.o
+ext/*.so
+ext/*.bundle
+pkg
+.bundle
