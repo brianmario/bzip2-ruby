@@ -2,7 +2,7 @@
 require 'spec_helper'
 
 describe Bzip2::Writer do
-  before(:all) do
+  before(:each) do
     @sample = "08: This is a line\n"
     @file = "_10lines_"
     @data = [
@@ -23,334 +23,239 @@ describe Bzip2::Writer do
     end
   end
 
-  after(:all) do
-    File.unlink(@file)
+  after(:each) do
+    File.delete(@file) if File.exists?(@file)
   end
 
-  it "should test_f_s_foreach" do
-    count = 0
-    Bzip2::Reader.foreach(@file) do |line|
-      num = line[0..1].to_i
-      count.should == num
-      count += 1
-    end
-    @data.size.should == count
+  it "iterate over each line of the file via the foreach method" do
+    lines = []
+    Bzip2::Reader.foreach(@file){ |line| lines << line }
+    lines.should == @data
 
-    count = 0
+    lines.clear
     Bzip2::Reader.foreach(@file, nil) do |file|
-      file.split(/\n/).each do |line|
-        num = line[0..1].to_i
-        count.should == num
-        count += 1
-      end
+      file.split(/\n/).each{ |line| lines << line + "\n" }
     end
-    @data.size.should == count
+    lines.should == @data
 
     count = 0
     Bzip2::Reader.foreach(@file, ' ') do |thing|
       count += 1
     end
-    41.should == count
+    count.should == 41
   end
 
-  it "should test_f_s_readlines" do
+  it "returns an array of the lines read via #readlines" do
     lines = Bzip2::Reader.readlines(@file)
-    @data.size.should == lines.size
+    lines.should == @data
 
     lines = Bzip2::Reader.readlines(@file, nil)
-    1.should == lines.size
-    (@sample.length * @data.size).should == lines[0].size
+    lines.should == [@data.join]
   end
 
-  it "should test_f_closed?" do
+  it "track when the stream has been closed" do
     f = Bzip2::Reader.open(@file)
-    f.closed?.should be_false
+    f.should_not be_closed
     f.close
-    f.closed?.should be_true
+    f.should be_closed
   end
 
-  it "should test_f_each" do
-    count = 0
-    Bzip2::Reader.open(@file) do |file|
-      file.each do |line|
-        num = line[0..1].to_i
-        count.should == num
-        count += 1
+  shared_examples_for 'a line iterator' do |method|
+    it "iterates over the lines when using #each" do
+      Bzip2::Reader.open(@file) do |file|
+        list = []
+        file.send(method){ |l| list << l }
+        list.should == @data
       end
-      @data.size.should == count
-    end
 
-    count = 0
-    Bzip2::Reader.open(@file) do |file|
-      file.each(nil) do |contents|
-        contents.split(/\n/).each do |line|
-          num = line[0..1].to_i
-          count.should == num
+      Bzip2::Reader.open(@file) do |file|
+        file.send(method, nil) do |contents|
+          contents.should == @data.join
+        end
+      end
+
+      count = 0
+      Bzip2::Reader.open(@file) do |file|
+        file.send(method, ' ') do |thing|
           count += 1
         end
       end
+      41.should == count
     end
-    @data.size.should == count
-
-    count = 0
-    Bzip2::Reader.open(@file) do |file|
-      file.each(' ') do |thing|
-        count += 1
-      end
-    end
-    41.should == count
   end
 
-  it "should test_f_each_byte" do
-    count = 0
-    data = @data.join
+  it_should_behave_like 'a line iterator', :each
+  it_should_behave_like 'a line iterator', :each_line
+
+  it "iterates over the decompressed bytes via #each_byte" do
+    bytes = @data.join.bytes.to_a
 
     Bzip2::Reader.open(@file) do |file|
       file.each_byte do |b|
-        data.getbyte(count).should == b
-        count += 1
+        b.should == bytes.shift
       end
     end
-    (@sample.length * @data.size).should == count
+
+    bytes.size.should == 0
   end
 
-  it "should test_f_each_line" do
-    count = 0
-    Bzip2::Reader.open(@file) do |file|
-      file.each_line do |line|
-        num = line[0..1].to_i
-        count.should == num
-        count += 1
-      end
-      @data.size.should == count
-    end
-
-    count = 0
-    Bzip2::Reader.open(@file) do |file|
-      file.each_line(nil) do |contents|
-        contents.split(/\n/).each do |line|
-          num = line[0..1].to_i
-          count.should == num
-          count += 1
-        end
-      end
-    end
-    @data.size.should == count
-
-    count = 0
-    Bzip2::Reader.open(@file) do |file|
-      file.each_line(' ') do |thing|
-        count += 1
-      end
-    end
-    41.should == count
-  end
-
-  it "should test_f_eof" do
+  it "keeps track of when eof has been reached" do
     Bzip2::Reader.open(@file) do |file|
       @data.size.times do
-        (!file.eof).should be_true
-        (!file.eof?).should be_true
+        file.should_not be_eof
         file.gets
       end
-      file.eof.should be_true
-      file.eof?.should be_true
+
+      file.should be_eof
     end
   end
 
-  it "should test_f_getc" do
-    count = 0
-    data = @data.join
+  it "gets only one byte at a time via getc and doesn't raise an exception" do
+    bytes = @data.join.bytes.to_a
 
     Bzip2::Reader.open(@file) do |file|
-      while (ch = file.getc)
-        data.getbyte(count).should == ch
-        count += 1
+      while ch = file.getc
+        ch.should == bytes.shift
       end
+
       file.getc.should be_nil
     end
-    (@sample.length * @data.size).should == count
+
+    bytes.size.should == 0
   end
 
-  it "should test_f_gets" do
-    count = 0
+  it "reads an entire line via gets" do
     Bzip2::Reader.open(@file) do |file|
-      while (line = file.gets)
-        num = line[0..1].to_i
-        count.should == num
-        count += 1
+      lines = []
+      while line = file.gets
+        lines << line
       end
+      lines.should == @data
+
       file.gets.should be_nil
-      @data.size.should == count
     end
 
-    count = 0
     Bzip2::Reader.open(@file) do |file|
-      while (line = file.gets("line\n"))
-        @data[count].should == line
-        num = line[0..1].to_i
-        count.should == num
-        count += 1
+      lines = []
+      while line = file.gets("line\n")
+        lines << line
       end
+      lines.should == @data
+
       file.gets.should be_nil
-      @data.size.should == count
     end
+
+    lines = ''
+    Bzip2::Reader.open(@file) do |file|
+      while contents = file.gets(nil)
+        lines << contents
+      end
+    end
+    lines.should == @data.join
 
     count = 0
     Bzip2::Reader.open(@file) do |file|
-      while (contents = file.gets(nil))
-        contents.split(/\n/).each do |line|
-          num = line[0..1].to_i
-          count.should == num
-          count += 1
-        end
-      end
-    end
-    @data.size.should == count
-
-    count = 0
-    Bzip2::Reader.open(@file) do |file|
-      while (thing = file.gets(' '))
-        count += 1
-      end
+      count += 1 while file.gets(' ')
     end
     41.should == count
   end
 
-  it "should test_f_read" do
+  it "reads the entire file or a specified length when using #read" do
     Bzip2::Reader.open(@file) do |file|
-      content = file.read
-      (@sample.length * @data.size).should == content.length
-      count = 0
-      content.split(/\n/).each do |line|
-        num = line[0..1].to_i
-        count.should == num
-        count += 1
-      end
+      file.read.should == @data.join
     end
 
     Bzip2::Reader.open(@file) do |file|
-      "00: This is ".should == file.read(12)
-      "a line\n01: T".should == file.read(12)
+      file.read(12).should == "00: This is "
+      file.read(12).should == "a line\n01: T"
     end
   end
 
-  it "should test_f_readchar" do
+  it "reads one character and returns the byte value of the character read" do
     count = 0
     data = @data.join
     Bzip2::Reader.open(@file) do |file|
-      190.times do |count|
-        ch = file.readchar
-        data.getbyte(count).should == ch
-        count += 1
+      @data.join.bytes do |byte|
+        file.readchar.should == byte
       end
+
       lambda { file.readchar }.should raise_error(Bzip2::EOZError)
     end
   end
 
-  it "should test_f_readline" do
+  it "reads one line at a time and raises and exception when no more" do
     count = 0
     Bzip2::Reader.open(@file) do |file|
+      lines = []
       @data.size.times do |count|
-        line = file.readline
-        num = line[0..1].to_i
-        count.should == num
-        count += 1
+        lines << file.readline
       end
+
+      lines.should == @data
       lambda { file.readline }.should raise_error(Bzip2::EOZError)
     end
 
-    count = 0
     Bzip2::Reader.open(@file) do |file|
-      contents = file.readline(nil)
-      contents.split(/\n/).each do |line|
-        num = line[0..1].to_i
-        count.should == num
-        count += 1
-      end
+      file.readline(nil).should == @data.join
+
       lambda { file.readline }.should raise_error(Bzip2::EOZError)
     end
-    @data.size.should == count
 
-    count = 0
     Bzip2::Reader.open(@file) do |file|
-      41.times do |count|
-        thing = file.readline(' ')
-        count += 1
-      end
+      41.times { |count| file.readline(' ') }
       lambda { file.readline }.should raise_error(Bzip2::EOZError)
     end
   end
 
-  it "should test_f_readlines" do
+  it "returns an array of lines in the file" do
     Bzip2::Reader.open(@file) do |file|
-      lines = file.readlines
-      @data.size.should == lines.size
+      file.readlines.should == @data
     end
 
     Bzip2::Reader.open(@file) do |file|
-      lines = file.readlines(nil)
-      1.should == lines.size
-      (@sample.length * @data.size).should == lines[0].size
+      file.readlines(nil).should == [@data.join]
     end
   end
 
-  # it "should test_f_ungetc" do
-  #   Bzip2::Reader.open(@file) do |file|
-  #     ?0.getbyte(0).should == file.getc
-  #     ?0.getbyte(0).should == file.getc
-  #     ?:.getbyte(0).should == file.getc
-  #     ?\s.getbyte(0).should == file.getc
-  #     file.ungetc(?:.to_i).should be_nil
-  #     ?:.getbyte(0).should == file.getc
-  #     1 while file.getc
-  #     file.ungetc(?A).should be_nil
-  #     ?A.should == file.getc
-  #   end
-  # end
-
-  it "should test_f_ungets" do
-    count = 0
+  it "rewinds the stream when #ungetc is called and returns that byte next" do
     Bzip2::Reader.open(@file) do |file|
-      @data[count].should == file.gets
-      (count + 1).should == file.lineno
-      file.ungets(@data[count]).should be_nil
-      @data[count].should == file.gets
-      count += 1
+      '0'.bytes.first.should == file.getc
+      '0'.bytes.first.should == file.getc
+      ':'.bytes.first.should == file.getc
+      ' '.bytes.first.should == file.getc
+
+      file.ungetc(':'.bytes.first).should be_nil
+      ':'.bytes.first.should == file.getc
+
+      file.read
+
+      file.ungetc('A'.bytes.first).should be_nil
+      'A'.bytes.first.should == file.getc
     end
   end
 
-  it "should test_s_readline" do
-    count = 0
-    string = IO.readlines(@file, nil)[0]
+  it "rewinds the stream when #ungets is called" do
+    Bzip2::Reader.open(@file) do |file|
+      @data[0].should == file.gets
+      1.should == file.lineno
+      file.ungets(@data[0]).should be_nil
+      @data[0].should == file.gets
+    end
+  end
+
+  it "reads entire lines via readline and throws an exception when there is" do
+    string = File.read(@file)
     file = Bzip2::Reader.new(string)
+    lines = []
     @data.size.times do |count|
-      line = file.readline
-      num = line[0..1].to_i
-      count.should == num
-      count += 1
+      lines << file.readline
     end
+    lines.should == @data
     lambda { file.readline }.should raise_error(Bzip2::EOZError)
     file.close
 
-    count = 0
     file = Bzip2::Reader.new(string)
-    contents = file.readline(nil)
-    contents.split(/\n/).each do |line|
-      num = line[0..1].to_i
-      count.should == num
-      count += 1
-    end
-    lambda { file.readline }.should raise_error(Bzip2::EOZError)
-    @data.size.should == count
-    file.close
-
-    count = 0
-    file = Bzip2::Reader.new(string)
-    41.times do |count|
-      thing = file.readline(' ')
-      count += 1
-    end
+    file.readline(nil).should == @data.join
     lambda { file.readline }.should raise_error(Bzip2::EOZError)
     file.close
   end
