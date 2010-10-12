@@ -1270,12 +1270,6 @@ static VALUE bz_s_new(int argc, VALUE *argv, VALUE obj) {
     return res;
 }
 
-static VALUE bz_proc_new(VALUE (*func)(ANYARGS), VALUE val) {
-    VALUE tmp = Data_Wrap_Struct(rb_cData, 0, 0, 0);
-    rb_define_singleton_method(tmp, "tmp_proc", func, 1);
-    return rb_funcall2(rb_funcall(tmp, rb_intern("method"), 1, ID2SYM(rb_intern("tmp_proc"))), rb_intern("to_proc"), 0, 0);
-}
-
 void Init_bzip2_ext() {
     VALUE bz_mBzip2;
 
