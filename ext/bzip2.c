@@ -661,10 +661,10 @@ static int bz_next_available(struct bz_file *bzf, int in){
 
 #define ASIZE (1 << CHAR_BIT)
 
-static VALUE bz_read_until(struct bz_file *bzf, char *str, int len, int *td1) {
+static VALUE bz_read_until(struct bz_file *bzf, const char *str, int len, int *td1) {
     VALUE res;
     int total, i, nex = 0;
-    char *p, *t, *tx, *end, *pend = str + len;
+    char *p, *t, *tx, *end, *pend = ((char*) str) + len;
 
     res = rb_str_new(0, 0);
     while (1) {
@@ -682,7 +682,7 @@ static VALUE bz_read_until(struct bz_file *bzf, char *str, int len, int *td1) {
             tx = bzf->bzs.next_out;
             end = bzf->bzs.next_out + bzf->bzs.avail_out;
             while (tx + len <= end) {
-                for (p = str, t = tx; p != pend; ++p, ++t) {
+                for (p = (char*) str, t = tx; p != pend; ++p, ++t) {
                     if (*p != *t) break;
                 }
                 if (p == pend) {
@@ -856,7 +856,7 @@ VALUE bz_reader_gets(VALUE obj) {
 static VALUE bz_reader_gets_internal(int argc, VALUE *argv, VALUE obj, int *td, int init) {
     struct bz_file *bzf;
     VALUE rs, res;
-    char *rsptr;
+    const char *rsptr;
     int rslen, rspara, *td1;
 
     rs = rb_rs;
