@@ -3,7 +3,6 @@ require 'spec_helper'
 
 describe Bzip2::Writer do
   before(:each) do
-    @sample = "08: This is a line\n"
     @file = "_10lines_"
     @data = [
       "00: This is a line\n",
