@@ -1,7 +1,7 @@
 # encoding: UTF-8
-require File.expand_path(File.dirname(__FILE__) + '/spec_helper.rb')
+require 'spec_helper'
 
-describe "Bzip2::Writer" do
+describe Bzip2::Writer do
   class Dummy
     def to_s
       "dummy"

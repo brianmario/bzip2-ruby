@@ -1,7 +1,7 @@
 # encoding: UTF-8
-require File.expand_path(File.dirname(__FILE__) + '/spec_helper.rb')
+require 'spec_helper'
 
-describe "Bzip2::Writer" do
+describe Bzip2::Writer do
   before(:all) do
     @sample = "08: This is a line\n"
     @file = "_10lines_"
@@ -15,14 +15,14 @@ describe "Bzip2::Writer" do
       "06: This is a line\n",
       "07: This is a line\n",
       "08: This is a line\n",
-      "09: This is a line\n" 
+      "09: This is a line\n"
     ]
 
     open("|bzip2 > #{@file}", "w") do |f|
       @data.each { |l| f.puts l }
     end
   end
-  
+
   after(:all) do
     File.unlink(@file)
   end
@@ -52,7 +52,7 @@ describe "Bzip2::Writer" do
     end
     41.should == count
   end
-  
+
   it "should test_f_s_readlines" do
     lines = Bzip2::Reader.readlines(@file)
     @data.size.should == lines.size
