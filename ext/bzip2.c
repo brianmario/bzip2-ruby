@@ -9,7 +9,7 @@
 #endif
 
 static VALUE bz_cWriter, bz_cReader, bz_cInternal;
-static VALUE bz_eError, bz_eConfigError, bz_eEOZError;
+static VALUE bz_eError, bz_eEOZError;
 
 static VALUE bz_internal_ary;
 
@@ -89,10 +89,6 @@ static VALUE bz_raise(int error) {
             break;
         case BZ_OUTBUFF_FULL:
             msg = "output buffer full";
-            break;
-        case BZ_CONFIG_ERROR:
-            exc = bz_eConfigError;
-            msg = "library has been improperly compiled on your platform";
             break;
         default:
             msg = "unknown error";
@@ -1708,7 +1704,6 @@ void Init_bzip2_ext() {
     id_str    = rb_intern("to_str");
 
     bz_mBzip2       = rb_define_module("Bzip2");
-    bz_eConfigError = rb_define_class_under(bz_mBzip2, "ConfigError", rb_eFatal);
     bz_eError       = rb_define_class_under(bz_mBzip2, "Error", rb_eIOError);
     bz_eEOZError    = rb_define_class_under(bz_mBzip2, "EOZError", bz_eError);
 
