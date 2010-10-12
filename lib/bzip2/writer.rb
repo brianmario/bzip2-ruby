@@ -7,6 +7,22 @@ module Bzip2
   # written to. Otherwise, data is all stored internally as a string and can
   # be retrieved via the Bzip2::Writer#flush method
   #
+  # It can both write to files:
+  #
+  #     writer = Bzip2::Writer.open('file')
+  #     writer << data
+  #     writer.close
+  #
+  #     Bzip2::Writer.open('file'){ |f| f << data }
+  #
+  #     writer = Bzip2::Writer.new File.open('file')
+  #
+  # And output data as a string
+  #
+  #     writer = Bzip2::Writer.new
+  #     writer << data
+  #     writer.flush # => data compressed via bz2
+  #
   # @see Bzip2::Writer#initialize The initialize method for examples
   class Writer
 
