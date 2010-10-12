@@ -1157,7 +1157,11 @@ static VALUE bz_reader_s_foreach(int argc, VALUE *argv, VALUE obj) {
         rb_raise(rb_eArgError, "call out of a block");
     }
     rb_scan_args(argc, argv, "11", &fname, &sep);
+#ifdef SafeStringValue
+    SafeStringValue(fname);
+#else
     Check_SafeStr(fname);
+#endif
     arg.argc = argc - 1;
     arg.sep = sep;
     arg.obj = rb_funcall2(rb_mKernel, id_open, 1, &fname);
@@ -1189,7 +1193,11 @@ static VALUE bz_reader_s_readlines(int argc, VALUE *argv, VALUE obj) {
     struct bz_file *bzf;
 
     rb_scan_args(argc, argv, "11", &fname, &sep);
+#ifdef SafeStringValue
+    SafeStringValue(fname);
+#else
     Check_SafeStr(fname);
+#endif
     arg.argc = argc - 1;
     arg.sep = sep;
     arg.obj = rb_funcall2(rb_mKernel, id_open, 1, &fname);
