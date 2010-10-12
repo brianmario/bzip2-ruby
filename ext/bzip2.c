@@ -61,7 +61,7 @@ struct bz_iv {
 
 static VALUE bz_raise(int error) {
     VALUE exc;
-    char *msg;
+    const char *msg;
 
     exc = bz_eError;
     switch (error) {
@@ -98,7 +98,7 @@ static VALUE bz_raise(int error) {
             msg = "unknown error";
             exc = bz_eError;
     }
-    rb_raise(exc, msg);
+    rb_raise(exc, "%s", msg);
 }
 
 static void bz_str_mark(struct bz_str *bzs) {
