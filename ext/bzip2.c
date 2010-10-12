@@ -201,7 +201,7 @@ static VALUE bz_writer_internal_close(struct bz_file *bzf) {
     return res;
 }
 
-static VALUE bz_internal_finalize(VALUE ary, VALUE obj) {
+static void bz_internal_finalize(VALUE data) {
     VALUE elem;
     int closed, i;
     struct bz_iv *bziv;
@@ -227,7 +227,6 @@ static VALUE bz_internal_finalize(VALUE ary, VALUE obj) {
             }
         }
     }
-    return Qnil;
 }
 
 static VALUE bz_writer_close(VALUE obj) {
@@ -1279,7 +1278,7 @@ void Init_bzip2_ext() {
 
     bz_internal_ary = rb_ary_new();
     rb_global_variable(&bz_internal_ary);
-    rb_funcall(rb_const_get(rb_cObject, rb_intern("ObjectSpace")), rb_intern("define_finalizer"), 2, bz_internal_ary, bz_proc_new(bz_internal_finalize, 0));
+    rb_set_end_proc(bz_internal_finalize, Qnil);
 
     id_new = rb_intern("new");
     id_write = rb_intern("write");
