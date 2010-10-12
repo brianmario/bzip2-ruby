@@ -230,6 +230,23 @@ static void bz_internal_finalize(VALUE data) {
     }
 }
 
+/*
+ * Closes this writer for further use. The remaining data is compressed and
+ * flushed.
+ *
+ * If the writer was constructed with an io object, that object is returned.
+ * Otherwise, the actual compressed data is returned
+ *
+ * Usage:
+ *
+ *    writer = Bzip2::Writer.new File.open('path', 'w')
+ *    writer << 'a'
+ *    writer.close # => #<File:path>
+ *
+ *    writer = Bzip2::Writer.new
+ *    writer << 'a'
+ *    writer.close # => "BZh91AY&SY...
+ */
 static VALUE bz_writer_close(VALUE obj) {
     struct bz_file *bzf;
     VALUE res;
@@ -327,6 +344,12 @@ static VALUE bz_writer_s_alloc(VALUE obj) {
     return res;
 }
 
+/*
+ * Flushes all of the data in this stream to the underlying IO, returning +nil+.
+ *
+ * If this writer was constructed with no underlying io object, the compressed
+ * data is returned as a string.
+ */
 static VALUE bz_writer_flush(VALUE obj) {
     struct bz_file *bzf;
 
@@ -338,6 +361,27 @@ static VALUE bz_writer_flush(VALUE obj) {
     return Qnil;
 }
 
+/*
+ * call-seq:
+ *   Bzip2::Writer.open(filename, mode='wb', &block=nil) -> Bzip2::Writer
+ *
+ * Opens the given filename with the given mode using Kernel#open to write
+ * compressed data to.
+ *
+ * If a block is given, the created Bzip2::Writer instance is yielded to the
+ * block and will be closed when the block completes. It is guaranteed via
+ * +ensure+ that the writer is closed
+ *
+ * If a block is not given, a Bzip2::Writer instance will be returned
+ *
+ * Example usage:
+ *
+ *    Bzip2::Writer.open('file') { |f| f << data }
+ *
+ *    writer = Bzip2::Writer.open('file')
+ *    writer << data
+ *    writer.close
+ */
 static VALUE bz_writer_s_open(int argc, VALUE *argv, VALUE obj) {
     VALUE res;
     struct bz_file *bzf;
@@ -376,6 +420,28 @@ static VALUE bz_str_closed(VALUE obj) {
     return Qfalse;
 }
 
+/*
+ * call-seq:
+ *    Bzip2::Writer.new(io = nil)
+ *
+ * Creates a new Bzip2::Writer for compressing a stream of data. An optional
+ * io object (something responding to +write+) can be supplied which data
+ * will be written to.
+ *
+ * If nothing is given, the Bzip2::Writer#flush method can be called to retrieve
+ * the compressed stream so far.
+ *
+ * Example usage:
+ *
+ *    writer = Bzip::Writer.new File.open('files.bz2')
+ *    writer << 'a'
+ *    writer << 'b'
+ *    writer.close
+ *
+ *    writer = Bzip::Writer.new
+ *    writer << 'abcde'
+ *    writer.flush # => 'abcde' compressed
+ */
 static VALUE bz_writer_init(int argc, VALUE *argv, VALUE obj) {
     struct bz_file *bzf;
     int blocks = DEFAULT_BLOCKS;
@@ -492,6 +558,13 @@ static VALUE bz_writer_putc(VALUE obj, VALUE a) {
     return bz_writer_write(obj, rb_str_new(&c, 1));
 }
 
+/*
+ * call-seq:
+ *   Bzip2.compress('string') -> compressed string
+ *
+ * Shortcut for compressing just a string.
+ *
+ */
 static VALUE bz_compress(int argc, VALUE *argv, VALUE obj) {
     VALUE bz2, str;
 
@@ -1039,6 +1112,11 @@ static VALUE bz_reader_eoz(VALUE obj) {
     return Qfalse;
 }
 
+/*
+ * Test whether this reader has reached the end of the stream.
+ *
+ * Returns +true+ if it is or +false+ otherwise.
+ */
 static VALUE bz_reader_eof(VALUE obj) {
     struct bz_file *bzf;
     VALUE res;
@@ -1061,6 +1139,11 @@ static VALUE bz_reader_eof(VALUE obj) {
     return res;
 }
 
+/*
+ * Tests whether this reader has be closed.
+ *
+ * Returns +true+ if it is or +false+ otherwise.
+ */
 static VALUE bz_reader_closed(VALUE obj) {
     struct bz_file *bzf;
 
@@ -1068,6 +1151,9 @@ static VALUE bz_reader_closed(VALUE obj) {
     return RTEST(bzf->io)?Qfalse:Qtrue;
 }
 
+/*
+ * Closes this reader to disallow further reads.
+ */
 static VALUE bz_reader_close(VALUE obj) {
     struct bz_file *bzf;
     VALUE res;
@@ -1285,25 +1371,30 @@ void Init_bzip2_ext() {
     rb_global_variable(&bz_internal_ary);
     rb_set_end_proc(bz_internal_finalize, Qnil);
 
-    id_new = rb_intern("new");
-    id_write = rb_intern("write");
-    id_open = rb_intern("open");
-    id_flush = rb_intern("flush");
-    id_read = rb_intern("read");
-    id_close = rb_intern("close");
+    id_new    = rb_intern("new");
+    id_write  = rb_intern("write");
+    id_open   = rb_intern("open");
+    id_flush  = rb_intern("flush");
+    id_read   = rb_intern("read");
+    id_close  = rb_intern("close");
     id_closed = rb_intern("closed?");
-    id_str = rb_intern("to_str");
+    id_str    = rb_intern("to_str");
 
-    bz_mBzip2 = rb_define_module("Bzip2");
+    bz_mBzip2       = rb_define_module("Bzip2");
     bz_eConfigError = rb_define_class_under(bz_mBzip2, "ConfigError", rb_eFatal);
-    bz_eError = rb_define_class_under(bz_mBzip2, "Error", rb_eIOError);
-    bz_eEOZError = rb_define_class_under(bz_mBzip2, "EOZError", bz_eError);
+    bz_eError       = rb_define_class_under(bz_mBzip2, "Error", rb_eIOError);
+    bz_eEOZError    = rb_define_class_under(bz_mBzip2, "EOZError", bz_eError);
 
-    rb_define_module_function(bz_mBzip2, "compress", bz_compress, -1);
-    rb_define_module_function(bz_mBzip2, "uncompress", bz_uncompress, -1);
-    rb_define_module_function(bz_mBzip2, "decompress", bz_uncompress, -1);
-    rb_define_module_function(bz_mBzip2, "bzip2", bz_compress, -1);
-    rb_define_module_function(bz_mBzip2, "bunzip2", bz_uncompress, -1);
+    /**
+     * Some comment here
+     */
+    VALUE bz_mBzip2Singleton = rb_singleton_class(bz_mBzip2);
+    rb_define_method(bz_mBzip2Singleton, "compress",   bz_compress,   -1);
+    rb_define_method(bz_mBzip2Singleton, "uncompress", bz_uncompress, -1);
+    rb_define_alias(bz_mBzip2Singleton, "bzip2",      "compress");
+    rb_define_alias(bz_mBzip2Singleton, "decompress", "uncompress");
+    rb_define_alias(bz_mBzip2Singleton, "bunzip2",    "uncompress");
+
     /*
       Writer
     */
@@ -1323,10 +1414,11 @@ void Init_bzip2_ext() {
     rb_define_method(bz_cWriter, "printf", rb_io_printf, -1);
     rb_define_method(bz_cWriter, "<<", rb_io_addstr, 1);
     rb_define_method(bz_cWriter, "flush", bz_writer_flush, 0);
-    rb_define_method(bz_cWriter, "finish", bz_writer_flush, 0);
     rb_define_method(bz_cWriter, "close", bz_writer_close, 0);
     rb_define_method(bz_cWriter, "close!", bz_writer_close_bang, 0);
     rb_define_method(bz_cWriter, "to_io", bz_to_io, 0);
+    rb_define_alias(bz_cWriter, "finish", "flush");
+
     /*
       Reader
     */
@@ -1353,20 +1445,21 @@ void Init_bzip2_ext() {
     rb_define_method(bz_cReader, "readline", bz_reader_readline, -1);
     rb_define_method(bz_cReader, "readlines", bz_reader_readlines, -1);
     rb_define_method(bz_cReader, "each", bz_reader_each_line, -1);
-    rb_define_method(bz_cReader, "each_line", bz_reader_each_line, -1);
     rb_define_method(bz_cReader, "each_byte", bz_reader_each_byte, 0);
     rb_define_method(bz_cReader, "close", bz_reader_close, 0);
     rb_define_method(bz_cReader, "close!", bz_reader_close_bang, 0);
     rb_define_method(bz_cReader, "finish", bz_reader_finish, 0);
-    rb_define_method(bz_cReader, "closed", bz_reader_closed, 0);
     rb_define_method(bz_cReader, "closed?", bz_reader_closed, 0);
     rb_define_method(bz_cReader, "eoz?", bz_reader_eoz, 0);
-    rb_define_method(bz_cReader, "eoz", bz_reader_eoz, 0);
     rb_define_method(bz_cReader, "eof?", bz_reader_eof, 0);
-    rb_define_method(bz_cReader, "eof", bz_reader_eof, 0);
     rb_define_method(bz_cReader, "lineno", bz_reader_lineno, 0);
     rb_define_method(bz_cReader, "lineno=", bz_reader_set_lineno, 1);
     rb_define_method(bz_cReader, "to_io", bz_to_io, 0);
+    rb_define_alias(bz_cReader, "each_line", "each");
+    rb_define_alias(bz_cReader, "closed", "closed?");
+    rb_define_alias(bz_cReader, "eoz", "eoz?");
+    rb_define_alias(bz_cReader, "eof", "eof?");
+
     /*
       Internal
     */

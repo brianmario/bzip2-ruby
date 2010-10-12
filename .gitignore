@@ -1,4 +1,5 @@
 _10lines_
+doc
 ext/Makefile
 ext/*.o
 ext/*.so
