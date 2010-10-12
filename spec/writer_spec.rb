@@ -78,7 +78,7 @@ describe Bzip2::Writer do
     end
 
     Bzip2::Reader.open(@file, "rb") do |file|
-      ?A.should == file.getc
+      'A'.bytes.first.should == file.getc
       0.upto(255) { |ch| ch.should == file.getc }
     end
   end
