@@ -1,4 +1,5 @@
 _10lines_
+.yardoc
 doc
 ext/Makefile
 ext/*.o

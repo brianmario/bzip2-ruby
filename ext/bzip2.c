@@ -237,8 +237,6 @@ static void bz_internal_finalize(VALUE data) {
  * If the writer was constructed with an io object, that object is returned.
  * Otherwise, the actual compressed data is returned
  *
- * Usage:
- *
  *    writer = Bzip2::Writer.new File.open('path', 'w')
  *    writer << 'a'
  *    writer.close # => #<File:path>
@@ -259,6 +257,9 @@ static VALUE bz_writer_close(VALUE obj) {
     return res;
 }
 
+/*
+ * Calls Bzip2::Writer#close and then does some more stuff...
+ */
 static VALUE bz_writer_close_bang(VALUE obj) {
     struct bz_file *bzf;
     int closed;
@@ -333,6 +334,10 @@ static void bz_free(void *opaque, void *p) {
 
 #define DEFAULT_BLOCKS 9
 
+/*
+ * Internally allocates information about a new writer
+ * @private
+ */
 static VALUE bz_writer_s_alloc(VALUE obj) {
     struct bz_file *bzf;
     VALUE res;
@@ -345,10 +350,13 @@ static VALUE bz_writer_s_alloc(VALUE obj) {
 }
 
 /*
- * Flushes all of the data in this stream to the underlying IO, returning +nil+.
+ * Flushes all of the data in this stream to the underlying IO.
  *
  * If this writer was constructed with no underlying io object, the compressed
  * data is returned as a string.
+ *
+ * @return [String, nil]
+ * @raise [IOError] if the stream has been closed
  */
 static VALUE bz_writer_flush(VALUE obj) {
     struct bz_file *bzf;
@@ -363,10 +371,11 @@ static VALUE bz_writer_flush(VALUE obj) {
 
 /*
  * call-seq:
- *   Bzip2::Writer.open(filename, mode='wb', &block=nil) -> Bzip2::Writer
+ *   open(filename, mode='wb', &block=nil) -> Bzip2::Writer
  *
- * Opens the given filename with the given mode using Kernel#open to write
- * compressed data to.
+ * @param [String] filename the name of the file to write to
+ * @param [String] mode a mode string passed to Kernel#open
+ * @yieldparam [Bzip2::Writer] writer the Bzip2::Writer instance
  *
  * If a block is given, the created Bzip2::Writer instance is yielded to the
  * block and will be closed when the block completes. It is guaranteed via
@@ -374,13 +383,13 @@ static VALUE bz_writer_flush(VALUE obj) {
  *
  * If a block is not given, a Bzip2::Writer instance will be returned
  *
- * Example usage:
- *
  *    Bzip2::Writer.open('file') { |f| f << data }
  *
  *    writer = Bzip2::Writer.open('file')
  *    writer << data
  *    writer.close
+ *
+ * @return [Bzip2::Writer, nil]
  */
 static VALUE bz_writer_s_open(int argc, VALUE *argv, VALUE obj) {
     VALUE res;
@@ -422,7 +431,9 @@ static VALUE bz_str_closed(VALUE obj) {
 
 /*
  * call-seq:
- *    Bzip2::Writer.new(io = nil)
+ *    initialize(io = nil)
+ *
+ * @param [File] io the file which to write compressed data to
  *
  * Creates a new Bzip2::Writer for compressing a stream of data. An optional
  * io object (something responding to +write+) can be supplied which data
@@ -431,14 +442,12 @@ static VALUE bz_str_closed(VALUE obj) {
  * If nothing is given, the Bzip2::Writer#flush method can be called to retrieve
  * the compressed stream so far.
  *
- * Example usage:
- *
- *    writer = Bzip::Writer.new File.open('files.bz2')
+ *    writer = Bzip2::Writer.new File.open('files.bz2')
  *    writer << 'a'
  *    writer << 'b'
  *    writer.close
  *
- *    writer = Bzip::Writer.new
+ *    writer = Bzip2::Writer.new
  *    writer << 'abcde'
  *    writer.flush # => 'abcde' compressed
  */
@@ -514,6 +523,15 @@ static VALUE bz_writer_init(int argc, VALUE *argv, VALUE obj) {
 
 #define BZ_RB_BLOCKSIZE 4096
 
+/*
+ * call-seq:
+ *    write(data)
+ * Actually writes some data into this stream.
+ *
+ * @param [String] data the data to write
+ * @return [Integer] the length of the data which was written (uncompressed)
+ * @raise [IOError] if the stream has been closed
+ */
 static VALUE bz_writer_write(VALUE obj, VALUE a) {
     struct bz_file *bzf;
     int n;
@@ -553,6 +571,15 @@ static VALUE bz_writer_write(VALUE obj, VALUE a) {
     return INT2NUM(RSTRING_LEN(a));
 }
 
+/*
+ * call-seq:
+ *    putc(num)
+ *
+ * Write one byte into this stream.
+ * @param [Integer] num the number value of the character to write
+ * @return [Integer] always 1
+ * @raise [IOError] if the stream has been closed
+ */
 static VALUE bz_writer_putc(VALUE obj, VALUE a) {
     char c = NUM2CHR(a);
     return bz_writer_write(obj, rb_str_new(&c, 1));
@@ -563,7 +590,6 @@ static VALUE bz_writer_putc(VALUE obj, VALUE a) {
  *   Bzip2.compress('string') -> compressed string
  *
  * Shortcut for compressing just a string.
- *
  */
 static VALUE bz_compress(int argc, VALUE *argv, VALUE obj) {
     VALUE bz2, str;
@@ -1311,6 +1337,13 @@ static VALUE bz_reader_set_lineno(VALUE obj, VALUE lineno) {
     return lineno;
 }
 
+/*
+ * Returns the io stream underlying this stream. If the strem was constructed
+ * with a file, that is returned. Otherwise, an empty string is returned.
+ *
+ * @return [File, String] similar to whatever the stream was constructed with
+ * @raise [IOError] if the stream has been closed
+ */
 static VALUE bz_to_io(VALUE obj) {
     struct bz_file *bzf;
 
@@ -1358,6 +1391,13 @@ static VALUE bz_uncompress(int argc, VALUE *argv, VALUE obj) {
     return bz_reader_read(1, &nilv, bz2);
 }
 
+/*
+ * Internally allocates data,
+ *
+ * @see Bzip2::Writer#initialize
+ * @see Bzip2::Reader#initialize
+ * @private
+ */
 static VALUE bz_s_new(int argc, VALUE *argv, VALUE obj) {
     VALUE res = rb_funcall2(obj, rb_intern("allocate"), 0, 0);
     rb_obj_call_init(res, argc, argv);
