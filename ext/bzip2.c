@@ -1277,10 +1277,6 @@ static VALUE bz_proc_new(VALUE (*func)(ANYARGS), VALUE val) {
 void Init_bzip2_ext() {
     VALUE bz_mBzip2;
 
-    if (rb_const_defined_at(rb_cObject, rb_intern("Bzip2"))) {
-        rb_raise(rb_eNameError, "module already defined");
-    }
-
     bz_internal_ary = rb_ary_new();
     rb_global_variable(&bz_internal_ary);
     rb_funcall(rb_const_get(rb_cObject, rb_intern("ObjectSpace")), rb_intern("define_finalizer"), 2, bz_internal_ary, bz_proc_new(bz_internal_finalize, 0));
