@@ -1,5 +1,6 @@
 #include <ruby.h>
 #include <bzlib.h>
+#include <unistd.h>
 #ifndef RUBY_19_COMPATIBILITY
 #include <rubyio.h>
 #include <version.h>
@@ -291,7 +292,8 @@ static void bz_io_data_finalize(void *ptr) {
 #else
             rb_io_t *file = (rb_io_t *)ptr;
             if (file->fd) {
-                fclose(file->fd);
+                close(file->fd);
+
                 file->fd = 0;
             }
             if (file->stdio_file) {
@@ -301,6 +303,7 @@ static void bz_io_data_finalize(void *ptr) {
 #endif
         }
     }
+
 }
 
 static void * bz_malloc(void *opaque, int m, int n) {
