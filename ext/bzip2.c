@@ -1425,9 +1425,6 @@ void Init_bzip2_ext() {
     bz_eError       = rb_define_class_under(bz_mBzip2, "Error", rb_eIOError);
     bz_eEOZError    = rb_define_class_under(bz_mBzip2, "EOZError", bz_eError);
 
-    /**
-     * Some comment here
-     */
     VALUE bz_mBzip2Singleton = rb_singleton_class(bz_mBzip2);
     rb_define_method(bz_mBzip2Singleton, "compress",   bz_compress,   -1);
     rb_define_method(bz_mBzip2Singleton, "uncompress", bz_uncompress, -1);
