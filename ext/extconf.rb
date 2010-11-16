@@ -3,8 +3,8 @@ require 'mkmf'
 dir_config('bz2')
 have_header('bzlib.h')
 
-$CFLAGS << ' -Wall -Wextra -funroll-loops'
-# $CFLAGS << ' -O0 -ggdb'
+$CFLAGS << ' -Wall -funroll-loops '
+# $CFLAGS << ' -O0 -ggdb -Wextra'
 
 if have_library("bz2", "BZ2_bzWriteOpen")
   if enable_config("shared", true)

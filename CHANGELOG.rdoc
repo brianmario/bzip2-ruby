@@ -1,3 +1,23 @@
+== 0.2.7 2010-11-16
+
+* Add documentation for an overview of the Bzip2 module
+* Document the class methods on Bzip2 and get them to show up in yarddoc
+* Remove the ConfigError class because searching for it showed no instances of its usage
+* Add a Usage section to the README and a bit about adding it to a Gemfile
+* Improve the reader_spec.rb by making it more resilient in lots of places and a bit more descriptive/terse in 
+* Add a lot more documentation for the Reader class and also touch up the Writer class a bit
+* Make the Writer specs more descriptive by giving them some doc strings.
+* Wrap up documentation of the Bzip2::Writer class.
+* Add lib/bzip2-ruby.rb so it's not always necessary to specify to require 'bzip2' in Gemfiles and such
+* Start documenting the Bzip2::Writer class
+* Fix a few compiler warnings
+* Removed some dead code
+* Fix for ruby 1.9 compatibility.
+* Fix segfault when exiting in ruby 1.9
+* Follow the newer conventions of rspec
+* Migrate to using Bundler instead of Jeweler
+* use malloc/free instead of ruby_xmalloc/ruby_xfree
+
 == 0.2.6 2009-10-6
 
 * Updated to support Ruby 1.8.5
