@@ -8,3 +8,7 @@ task :build_extensions do
     system 'ruby extconf.rb && make'
   end
 end
+
+require 'rspec/core/rake_task'
+
+RSpec::Core::RakeTask.new(:spec)
