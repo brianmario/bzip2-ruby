@@ -6,3 +6,4 @@ ext/*.so
 ext/*.bundle
 pkg
 .bundle
+Gemfile.lock
