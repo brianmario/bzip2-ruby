@@ -1679,14 +1679,11 @@ static VALUE bz_str_read(int argc, VALUE *argv, VALUE obj) {
  * @return [String] +data+ as uncompressed bz2 data
  * @raise [Bzip2::Error] if +data+ is not valid bz2 data
  */
-static VALUE bz_uncompress(int argc, VALUE *argv, VALUE obj) {
-    VALUE bz2, nilv = Qnil;
+static VALUE bz_uncompress(VALUE self, VALUE data) {
+    VALUE bz2, nilv = Qnil, argv[1];
 
-    if (!argc) {
-        rb_raise(rb_eArgError, "need a String to Uncompress");
-    }
-    argv[0] = rb_str_to_str(argv[0]);
-    bz2 = rb_funcall2(bz_cReader, id_new, argc, argv);
+    argv[0] = rb_str_to_str(data);
+    bz2 = rb_funcall2(bz_cReader, id_new, 1, argv);
     return bz_reader_read(1, &nilv, bz2);
 }
 
@@ -1726,7 +1723,7 @@ void Init_bzip2_ext() {
 
     bz_mBzip2Singleton = rb_singleton_class(bz_mBzip2);
     rb_define_singleton_method(bz_mBzip2, "compress",   bz_compress,   -1);
-    rb_define_singleton_method(bz_mBzip2, "uncompress", bz_uncompress, -1);
+    rb_define_singleton_method(bz_mBzip2, "uncompress", bz_uncompress,  1);
     rb_define_alias(bz_mBzip2Singleton, "bzip2",      "compress");
     rb_define_alias(bz_mBzip2Singleton, "decompress", "uncompress");
     rb_define_alias(bz_mBzip2Singleton, "bunzip2",    "uncompress");
