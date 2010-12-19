@@ -592,15 +592,11 @@ static VALUE bz_writer_putc(VALUE obj, VALUE a) {
  * @param [String] str the string to compress
  * @return [String] +str+ compressed with bz2
  */
-static VALUE bz_compress(int argc, VALUE *argv, VALUE obj) {
-    VALUE bz2, str;
+static VALUE bz_compress(VALUE self, VALUE str) {
+    VALUE bz2, argv[1] = {Qnil};
 
-    if (!argc) {
-        rb_raise(rb_eArgError, "need a String to compress");
-    }
-    str = rb_str_to_str(argv[0]);
-    argv[0] = Qnil;
-    bz2 = rb_funcall2(bz_cWriter, id_new, argc, argv);
+    str = rb_str_to_str(str);
+    bz2 = rb_funcall2(bz_cWriter, id_new, 1, argv);
     if (OBJ_TAINTED(str)) {
         struct bz_file *bzf;
         Data_Get_Struct(bz2, struct bz_file, bzf);
@@ -1722,7 +1718,7 @@ void Init_bzip2_ext() {
     bz_eEOZError    = rb_define_class_under(bz_mBzip2, "EOZError", bz_eError);
 
     bz_mBzip2Singleton = rb_singleton_class(bz_mBzip2);
-    rb_define_singleton_method(bz_mBzip2, "compress",   bz_compress,   -1);
+    rb_define_singleton_method(bz_mBzip2, "compress",   bz_compress,    1);
     rb_define_singleton_method(bz_mBzip2, "uncompress", bz_uncompress,  1);
     rb_define_alias(bz_mBzip2Singleton, "bzip2",      "compress");
     rb_define_alias(bz_mBzip2Singleton, "decompress", "uncompress");
