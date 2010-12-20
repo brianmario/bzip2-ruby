@@ -4,7 +4,7 @@
 #include <ruby.h>
 #include "common.h"
 
-VALUE bz_writer_internal_flush(struct bz_file *bzf);
+int bz_writer_internal_flush(struct bz_file *bzf);
 
 /* Instance methods */
 VALUE bz_writer_close(VALUE obj);

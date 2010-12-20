@@ -77,7 +77,7 @@ void bz_io_data_finalize(void *ptr) {
 
 }
 
-VALUE bz_writer_internal_flush(struct bz_file *bzf) {
+int bz_writer_internal_flush(struct bz_file *bzf) {
     int closed = 1;
 
     if (rb_respond_to(bzf->io, id_closed)) {
@@ -417,8 +417,8 @@ VALUE bz_writer_write(VALUE obj, VALUE a) {
         bzf->buflen = BZ_RB_BLOCKSIZE;
         bzf->buf[0] = bzf->buf[bzf->buflen] = '\0';
     }
-    bzf->bzs.next_in = RSTRING_PTR(a);
-    bzf->bzs.avail_in = RSTRING_LEN(a);
+    bzf->bzs.next_in  = RSTRING_PTR(a);
+    bzf->bzs.avail_in = (int) RSTRING_LEN(a);
     while (bzf->bzs.avail_in) {
         bzf->bzs.next_out = bzf->buf;
         bzf->bzs.avail_out = bzf->buflen;
