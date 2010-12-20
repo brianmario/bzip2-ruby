@@ -88,7 +88,7 @@ VALUE bz_str_read(int argc, VALUE *argv, VALUE obj) {
     Data_Get_Struct(obj, struct bz_str, bzs);
     rb_scan_args(argc, argv, "01", &len);
     if (NIL_P(len)) {
-        count = RSTRING_LEN(bzs->str);
+        count = (int) RSTRING_LEN(bzs->str);
     } else {
         count = NUM2INT(len);
         if (count < 0) {
