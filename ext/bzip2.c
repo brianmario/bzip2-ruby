@@ -1705,6 +1705,7 @@ static VALUE bz_s_new(int argc, VALUE *argv, VALUE obj) {
 
 void Init_bzip2_ext() {
     VALUE bz_mBzip2;
+    VALUE bz_mBzip2Singleton;
 
     bz_internal_ary = rb_ary_new();
     rb_global_variable(&bz_internal_ary);
@@ -1723,7 +1724,7 @@ void Init_bzip2_ext() {
     bz_eError       = rb_define_class_under(bz_mBzip2, "Error", rb_eIOError);
     bz_eEOZError    = rb_define_class_under(bz_mBzip2, "EOZError", bz_eError);
 
-    VALUE bz_mBzip2Singleton = rb_singleton_class(bz_mBzip2);
+    bz_mBzip2Singleton = rb_singleton_class(bz_mBzip2);
     rb_define_singleton_method(bz_mBzip2, "compress",   bz_compress,   -1);
     rb_define_singleton_method(bz_mBzip2, "uncompress", bz_uncompress, -1);
     rb_define_alias(bz_mBzip2Singleton, "bzip2",      "compress");
