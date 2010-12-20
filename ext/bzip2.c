@@ -274,6 +274,18 @@ static VALUE bz_writer_close_bang(VALUE obj) {
     return Qnil;
 }
 
+/*
+ * Tests whether this writer is closed
+ *
+ * @return [Boolean] +true+ if the writer is closed or +false+ otherwise
+ */
+static VALUE bz_writer_closed(VALUE obj) {
+  struct bz_file *bzf;
+
+  Data_Get_Struct(obj, struct bz_file, bzf);
+  return RTEST(bzf->io)?Qfalse:Qtrue;
+}
+
 static void bz_writer_free(struct bz_file *bzf) {
     bz_writer_internal_close(bzf);
     free(bzf);
@@ -1745,8 +1757,10 @@ void Init_bzip2_ext() {
     rb_define_method(bz_cWriter, "flush", bz_writer_flush, 0);
     rb_define_method(bz_cWriter, "close", bz_writer_close, 0);
     rb_define_method(bz_cWriter, "close!", bz_writer_close_bang, 0);
+    rb_define_method(bz_cWriter, "closed?", bz_writer_closed, 0);
     rb_define_method(bz_cWriter, "to_io", bz_to_io, 0);
     rb_define_alias(bz_cWriter, "finish", "flush");
+    rb_define_alias(bz_cWriter, "closed", "closed?");
 
     /*
       Reader

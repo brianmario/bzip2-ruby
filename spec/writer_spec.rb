@@ -124,4 +124,11 @@ describe Bzip2::Writer do
       Bzip2::bunzip2(Bzip2::bzip2(test)).should == test
     end
   end
+
+  it "correctly reports when a writer is closed" do
+    writer = Bzip2::Writer.open(file, 'w')
+    writer.should_not be_closed
+    writer.close
+    writer.should be_closed
+  end
 end

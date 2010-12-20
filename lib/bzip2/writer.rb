@@ -27,6 +27,7 @@ module Bzip2
   class Writer
 
     alias :finish :flush
+    alias :closed :closed?
 
     # Append some data to this buffer, returning the buffer so this method can
     # be chained
