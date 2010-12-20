@@ -48,8 +48,8 @@ int bz_next_available(struct bz_file *bzf, int in){
             bzf->state = BZ_UNEXPECTED_EOF;
             bz_raise(bzf->state);
         }
-        bzf->bzs.next_in = RSTRING_PTR(bzf->in);
-        bzf->bzs.avail_in = RSTRING_LEN(bzf->in);
+        bzf->bzs.next_in  = RSTRING_PTR(bzf->in);
+        bzf->bzs.avail_in = (int) RSTRING_LEN(bzf->in);
     }
     if ((bzf->buflen - in) < (BZ_RB_BLOCKSIZE / 2)) {
         bzf->buf = REALLOC_N(bzf->buf, char, bzf->buflen+BZ_RB_BLOCKSIZE+1);
@@ -82,7 +82,7 @@ VALUE bz_read_until(struct bz_file *bzf, const char *str, int len, int *td1) {
         if (len == 1) {
             tx = memchr(bzf->bzs.next_out, *str, bzf->bzs.avail_out);
             if (tx) {
-                i = tx - bzf->bzs.next_out + len;
+                i = (int)(tx - bzf->bzs.next_out + len);
                 res = rb_str_cat(res, bzf->bzs.next_out, i);
                 bzf->bzs.next_out += i;
                 bzf->bzs.avail_out -= i;
@@ -96,7 +96,7 @@ VALUE bz_read_until(struct bz_file *bzf, const char *str, int len, int *td1) {
                     if (*p != *t) break;
                 }
                 if (p == pend) {
-                    i = tx - bzf->bzs.next_out + len;
+                    i = (int)(tx - bzf->bzs.next_out + len);
                     res = rb_str_cat(res, bzf->bzs.next_out, i);
                     bzf->bzs.next_out += i;
                     bzf->bzs.avail_out -= i;
@@ -144,10 +144,10 @@ int bz_read_while(struct bz_file *bzf, char c) {
         end = bzf->bzs.next_out + bzf->bzs.avail_out;
         while (bzf->bzs.next_out < end) {
             if (c != *bzf->bzs.next_out) {
-                bzf->bzs.avail_out = end -  bzf->bzs.next_out;
                 return *bzf->bzs.next_out;
             }
             ++bzf->bzs.next_out;
+            --bzf->bzs.avail_out;
         }
         if (bz_next_available(bzf, 0) == BZ_STREAM_END) {
             return EOF;
@@ -321,7 +321,7 @@ VALUE bz_reader_read(int argc, VALUE *argv, VALUE obj) {
     while (1) {
         total = bzf->bzs.avail_out;
         if (n != -1 && (RSTRING_LEN(res) + total) >= n) {
-            n -= RSTRING_LEN(res);
+            n -= (int) RSTRING_LEN(res);
             res = rb_str_cat(res, bzf->bzs.next_out, n);
             bzf->bzs.next_out += n;
             bzf->bzs.avail_out -= n;
@@ -423,11 +423,11 @@ VALUE bz_reader_ungets(VALUE obj, VALUE a) {
     if ((bzf->bzs.avail_out + RSTRING_LEN(a)) < bzf->buflen) {
         bzf->bzs.next_out -= RSTRING_LEN(a);
         MEMCPY(bzf->bzs.next_out, RSTRING_PTR(a), char, RSTRING_LEN(a));
-        bzf->bzs.avail_out += RSTRING_LEN(a);
+        bzf->bzs.avail_out += (int) RSTRING_LEN(a);
     } else {
         bzf->buf = REALLOC_N(bzf->buf, char, bzf->buflen + RSTRING_LEN(a) + 1);
         MEMCPY(bzf->buf + bzf->buflen, RSTRING_PTR(a), char,RSTRING_LEN(a));
-        bzf->buflen += RSTRING_LEN(a);
+        bzf->buflen += (int) RSTRING_LEN(a);
         bzf->buf[bzf->buflen] = '\0';
         bzf->bzs.next_out = bzf->buf;
         bzf->bzs.avail_out = bzf->buflen;
@@ -466,7 +466,7 @@ VALUE bz_reader_gets_internal(int argc, VALUE *argv, VALUE obj, int *td, int ini
     if (NIL_P(rs)) {
         return bz_reader_read(1, &rs, obj);
     }
-    rslen = RSTRING_LEN(rs);
+    rslen = (int) RSTRING_LEN(rs);
     if (rs == rb_default_rs || (rslen == 1 && RSTRING_PTR(rs)[0] == '\n')) {
         return bz_reader_gets(obj);
     }
@@ -530,7 +530,7 @@ VALUE bz_reader_set_unused(VALUE obj, VALUE a) {
         bzf->in = rb_str_cat(bzf->in, RSTRING_PTR(a), RSTRING_LEN(a));
     }
     bzf->bzs.next_in = RSTRING_PTR(bzf->in);
-    bzf->bzs.avail_in = RSTRING_LEN(bzf->in);
+    bzf->bzs.avail_in = (int) RSTRING_LEN(bzf->in);
     return Qnil;
 }
 
