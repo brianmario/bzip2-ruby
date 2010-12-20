@@ -3,6 +3,7 @@
 
 #include <ruby.h>
 
+/* Instance methods */
 VALUE bz_reader_init(int argc, VALUE *argv, VALUE obj);
 VALUE bz_reader_read(int argc, VALUE *argv, VALUE obj);
 VALUE bz_reader_ungetc(VALUE obj, VALUE a);
@@ -25,6 +26,7 @@ VALUE bz_reader_finish(VALUE obj);
 VALUE bz_reader_lineno(VALUE obj);
 VALUE bz_reader_set_lineno(VALUE obj, VALUE lineno);
 
+/* Class methods */
 VALUE bz_reader_s_alloc(VALUE obj);
 VALUE bz_reader_s_open(int argc, VALUE *argv, VALUE obj);
 VALUE bz_reader_s_foreach(int argc, VALUE *argv, VALUE obj);

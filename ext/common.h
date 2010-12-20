@@ -18,7 +18,7 @@
 #define DEFAULT_BLOCKS 9
 #define ASIZE (1 << CHAR_BIT)
 
-// Older versions of Ruby (< 1.8.6) need these
+/* Older versions of Ruby (< 1.8.6) need these */
 #ifndef RSTRING_PTR
 #  define RSTRING_PTR(s) (RSTRING(s)->ptr)
 #endif
