@@ -142,8 +142,7 @@ VALUE bz_s_new(int argc, VALUE *argv, VALUE obj) {
 }
 
 void Init_bzip2_ext() {
-    VALUE bz_mBzip2;
-    VALUE bz_mBzip2Singleton;
+    VALUE bz_mBzip2, bz_mBzip2Singleton;
 
     bz_internal_ary = rb_ary_new();
     rb_global_variable(&bz_internal_ary);
@@ -158,9 +157,9 @@ void Init_bzip2_ext() {
     id_closed = rb_intern("closed?");
     id_str    = rb_intern("to_str");
 
-    bz_mBzip2       = rb_define_module("Bzip2");
-    bz_eError       = rb_define_class_under(bz_mBzip2, "Error", rb_eIOError);
-    bz_eEOZError    = rb_define_class_under(bz_mBzip2, "EOZError", bz_eError);
+    bz_mBzip2    = rb_define_module("Bzip2");
+    bz_eError    = rb_define_class_under(bz_mBzip2, "Error", rb_eIOError);
+    bz_eEOZError = rb_define_class_under(bz_mBzip2, "EOZError", bz_eError);
 
     bz_mBzip2Singleton = rb_singleton_class(bz_mBzip2);
     rb_define_singleton_method(bz_mBzip2, "compress",   bz_compress,    1);
@@ -178,20 +177,20 @@ void Init_bzip2_ext() {
 #else
     rb_define_singleton_method(bz_cWriter, "allocate", bz_writer_s_alloc, 0);
 #endif
-    rb_define_singleton_method(bz_cWriter, "new", bz_s_new, -1);
-    rb_define_singleton_method(bz_cWriter, "open", bz_writer_s_open, -1);
-    rb_define_method(bz_cWriter, "initialize", bz_writer_init, -1);
-    rb_define_method(bz_cWriter, "write", bz_writer_write, 1);
-    rb_define_method(bz_cWriter, "putc", bz_writer_putc, 1);
-    rb_define_method(bz_cWriter, "puts", rb_io_puts, -1);
-    rb_define_method(bz_cWriter, "print", rb_io_print, -1);
-    rb_define_method(bz_cWriter, "printf", rb_io_printf, -1);
-    rb_define_method(bz_cWriter, "<<", rb_io_addstr, 1);
-    rb_define_method(bz_cWriter, "flush", bz_writer_flush, 0);
-    rb_define_method(bz_cWriter, "close", bz_writer_close, 0);
-    rb_define_method(bz_cWriter, "close!", bz_writer_close_bang, 0);
-    rb_define_method(bz_cWriter, "closed?", bz_writer_closed, 0);
-    rb_define_method(bz_cWriter, "to_io", bz_to_io, 0);
+    rb_define_singleton_method(bz_cWriter, "new",   bz_s_new,            -1);
+    rb_define_singleton_method(bz_cWriter, "open",  bz_writer_s_open,    -1);
+    rb_define_method(bz_cWriter, "initialize",      bz_writer_init,      -1);
+    rb_define_method(bz_cWriter, "write",           bz_writer_write,      1);
+    rb_define_method(bz_cWriter, "putc",            bz_writer_putc,       1);
+    rb_define_method(bz_cWriter, "puts",            rb_io_puts,          -1);
+    rb_define_method(bz_cWriter, "print",           rb_io_print,         -1);
+    rb_define_method(bz_cWriter, "printf",          rb_io_printf,        -1);
+    rb_define_method(bz_cWriter, "<<",              rb_io_addstr,         1);
+    rb_define_method(bz_cWriter, "flush",           bz_writer_flush,      0);
+    rb_define_method(bz_cWriter, "close",           bz_writer_close,      0);
+    rb_define_method(bz_cWriter, "close!",          bz_writer_close_bang, 0);
+    rb_define_method(bz_cWriter, "closed?",         bz_writer_closed,     0);
+    rb_define_method(bz_cWriter, "to_io",           bz_to_io,             0);
     rb_define_alias(bz_cWriter, "finish", "flush");
     rb_define_alias(bz_cWriter, "closed", "closed?");
 
@@ -205,32 +204,32 @@ void Init_bzip2_ext() {
 #else
     rb_define_singleton_method(bz_cReader, "allocate", bz_reader_s_alloc, 0);
 #endif
-    rb_define_singleton_method(bz_cReader, "new", bz_s_new, -1);
-    rb_define_singleton_method(bz_cReader, "open", bz_reader_s_open, -1);
-    rb_define_singleton_method(bz_cReader, "foreach", bz_reader_s_foreach, -1);
+    rb_define_singleton_method(bz_cReader, "new",       bz_s_new,         -1);
+    rb_define_singleton_method(bz_cReader, "open",      bz_reader_s_open, -1);
+    rb_define_singleton_method(bz_cReader, "foreach",   bz_reader_s_foreach,   -1);
     rb_define_singleton_method(bz_cReader, "readlines", bz_reader_s_readlines, -1);
-    rb_define_method(bz_cReader, "initialize", bz_reader_init, -1);
-    rb_define_method(bz_cReader, "read", bz_reader_read, -1);
-    rb_define_method(bz_cReader, "unused", bz_reader_unused, 0);
-    rb_define_method(bz_cReader, "unused=", bz_reader_set_unused, 1);
-    rb_define_method(bz_cReader, "ungetc", bz_reader_ungetc, 1);
-    rb_define_method(bz_cReader, "ungets", bz_reader_ungets, 1);
-    rb_define_method(bz_cReader, "getc", bz_reader_getc, 0);
-    rb_define_method(bz_cReader, "gets", bz_reader_gets_m, -1);
-    rb_define_method(bz_cReader, "readchar", bz_reader_readchar, 0);
-    rb_define_method(bz_cReader, "readline", bz_reader_readline, -1);
-    rb_define_method(bz_cReader, "readlines", bz_reader_readlines, -1);
-    rb_define_method(bz_cReader, "each", bz_reader_each_line, -1);
-    rb_define_method(bz_cReader, "each_byte", bz_reader_each_byte, 0);
-    rb_define_method(bz_cReader, "close", bz_reader_close, 0);
-    rb_define_method(bz_cReader, "close!", bz_reader_close_bang, 0);
-    rb_define_method(bz_cReader, "finish", bz_reader_finish, 0);
-    rb_define_method(bz_cReader, "closed?", bz_reader_closed, 0);
-    rb_define_method(bz_cReader, "eoz?", bz_reader_eoz, 0);
-    rb_define_method(bz_cReader, "eof?", bz_reader_eof, 0);
-    rb_define_method(bz_cReader, "lineno", bz_reader_lineno, 0);
-    rb_define_method(bz_cReader, "lineno=", bz_reader_set_lineno, 1);
-    rb_define_method(bz_cReader, "to_io", bz_to_io, 0);
+    rb_define_method(bz_cReader, "initialize",  bz_reader_init,      -1);
+    rb_define_method(bz_cReader, "read",        bz_reader_read,      -1);
+    rb_define_method(bz_cReader, "unused",      bz_reader_unused,     0);
+    rb_define_method(bz_cReader, "unused=",     bz_reader_set_unused, 1);
+    rb_define_method(bz_cReader, "ungetc",      bz_reader_ungetc,     1);
+    rb_define_method(bz_cReader, "ungets",      bz_reader_ungets,     1);
+    rb_define_method(bz_cReader, "getc",        bz_reader_getc,       0);
+    rb_define_method(bz_cReader, "gets",        bz_reader_gets_m,    -1);
+    rb_define_method(bz_cReader, "readchar",    bz_reader_readchar,   0);
+    rb_define_method(bz_cReader, "readline",    bz_reader_readline,  -1);
+    rb_define_method(bz_cReader, "readlines",   bz_reader_readlines, -1);
+    rb_define_method(bz_cReader, "each",        bz_reader_each_line, -1);
+    rb_define_method(bz_cReader, "each_byte",   bz_reader_each_byte,  0);
+    rb_define_method(bz_cReader, "close",       bz_reader_close,      0);
+    rb_define_method(bz_cReader, "close!",      bz_reader_close_bang, 0);
+    rb_define_method(bz_cReader, "finish",      bz_reader_finish,     0);
+    rb_define_method(bz_cReader, "closed?",     bz_reader_closed,     0);
+    rb_define_method(bz_cReader, "eoz?",        bz_reader_eoz,        0);
+    rb_define_method(bz_cReader, "eof?",        bz_reader_eof,        0);
+    rb_define_method(bz_cReader, "lineno",      bz_reader_lineno,     0);
+    rb_define_method(bz_cReader, "lineno=",     bz_reader_set_lineno, 1);
+    rb_define_method(bz_cReader, "to_io",       bz_to_io,             0);
     rb_define_alias(bz_cReader, "each_line", "each");
     rb_define_alias(bz_cReader, "closed", "closed?");
     rb_define_alias(bz_cReader, "eoz", "eoz?");
