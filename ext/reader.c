@@ -130,6 +130,13 @@ VALUE bz_read_until(struct bz_file *bzf, const char *str, int len, int *td1) {
     return Qnil;
 }
 
+/**
+ * Reads a stream as long as the next character is equal to the specified
+ * character
+ *
+ * Returns the next character in the sequence that's not the same as the one
+ * given or EOF if it's there until the end of the file.
+ */
 int bz_read_while(struct bz_file *bzf, char c) {
     char *end;
 
