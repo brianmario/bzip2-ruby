@@ -1,14 +1,35 @@
 require 'bundler'
 Bundler::GemHelper.install_tasks
 
-desc "Build the C extension"
-task :build_extensions do
-  Dir.chdir File.expand_path('../ext', __FILE__) do
-    system 'make distclean' if File.exists?('Makefile')
-    system 'ruby extconf.rb && make'
+# rspec
+begin
+  require 'rspec'
+  require 'rspec/core/rake_task'
+
+  desc "Run all examples with RCov"
+  RSpec::Core::RakeTask.new('spec:rcov') do |t|
+    t.rcov = true
   end
+  RSpec::Core::RakeTask.new('spec') do |t|
+    t.verbose = true
+  end
+
+  task :default => :spec
+rescue LoadError
+  puts "rspec, or one of its dependencies, is not available. Install it with: sudo gem install rspec"
 end
 
-require 'rspec/core/rake_task'
+# rake-compiler
+require 'rake' unless defined? Rake
 
-RSpec::Core::RakeTask.new(:spec)
+gem 'rake-compiler', '>= 0.7.5'
+require "rake/extensiontask"
+
+Rake::ExtensionTask.new('bzip2') do |ext|
+  ext.cross_compile = true
+  ext.cross_platform = ['x86-mingw32', 'x86-mswin32-60']
+
+  ext.lib_dir = File.join 'lib', 'bzip2'
+end
+
+Rake::Task[:spec].prerequisites << :compile

@@ -1,9 +1,10 @@
 _10lines_
 doc
 ext/Makefile
-ext/*.o
-ext/*.so
-ext/*.bundle
+*.o
+*.so
+*.bundle
 pkg
 .bundle
+tmp
 Gemfile.lock

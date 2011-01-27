@@ -1708,7 +1708,7 @@ static VALUE bz_s_new(int argc, VALUE *argv, VALUE obj) {
     return res;
 }
 
-void Init_bzip2_ext() {
+void Init_bzip2() {
     VALUE bz_mBzip2;
     VALUE bz_mBzip2Singleton;
 
