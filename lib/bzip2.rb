@@ -1,4 +1,4 @@
-require 'bzip2_ext'
+require 'bzip2/bzip2'
 require 'bzip2/version'
 
 # This is the base module for the +bzip2-ruby+ gem. Beneath it are the classes
