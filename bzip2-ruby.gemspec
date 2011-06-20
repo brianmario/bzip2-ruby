@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
   s.authors  = ['Guy Decoux', 'Brian Lopezs']
   s.date     = Time.now.utc.strftime("%Y-%m-%d")
   s.email    = ['seniorlopez@gmail.com']
-  s.extensions = ['ext/extconf.rb']
+  s.extensions = ['ext/bzip2/extconf.rb']
   s.extra_rdoc_files = [
     "README.rdoc"
   ]
