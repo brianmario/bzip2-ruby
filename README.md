@@ -18,7 +18,7 @@ Or in a Gemfile
 
 `gem 'bzip2-ruby'`
 
-== Usage
+## Usage
 
 The full documentation is hosted on {rdoc.info}[http://rdoc.info/github/brianmario/bzip2-ruby/master/frames].
 
