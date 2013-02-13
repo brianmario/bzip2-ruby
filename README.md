@@ -53,9 +53,11 @@ Bzip2::Reader.open('file'){ |f| puts f.read }
 
 ## Copying
 
- This extension module is copyrighted free software by Guy Decoux
- You can redistribute it and/or modify it under the same term as Ruby.
- Guy Decoux <ts@moulon.inra.fr>
+```
+This extension module is copyrighted free software by Guy Decoux
+You can redistribute it and/or modify it under the same term as Ruby.
+Guy Decoux <ts@moulon.inra.fr>
+```
 
 ## Modifications from origin version
 
