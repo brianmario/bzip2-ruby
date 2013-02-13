@@ -20,7 +20,7 @@ Or in a Gemfile
 
 ## Usage
 
-The full documentation is hosted on {rdoc.info}[http://rdoc.info/github/brianmario/bzip2-ruby/master/frames].
+The full documentation is hosted on [rdoc.info](http://rdoc.info/github/brianmario/bzip2-ruby/master/frames).
 
 Here's a quick overview, hower:
 
