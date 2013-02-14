@@ -8,7 +8,8 @@ Gem::Specification.new do |s|
   s.email    = ['seniorlopez@gmail.com']
   s.extensions = ['ext/bzip2/extconf.rb']
   s.extra_rdoc_files = [
-    "README.rdoc"
+    'CHANGELOG.md',
+    'README.md'
   ]
   s.files = `git ls-files`.split("\n")
   s.homepage = 'http://github.com/brianmario/bzip2-ruby'
