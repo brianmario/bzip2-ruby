@@ -7,9 +7,6 @@ Gem::Specification.new do |s|
   s.date     = Time.now.utc.strftime("%Y-%m-%d")
   s.email    = ['seniorlopez@gmail.com']
   s.extensions = ['ext/bzip2/extconf.rb']
-  s.extra_rdoc_files = [
-    "README.rdoc"
-  ]
   s.files = `git ls-files`.split("\n")
   s.homepage = 'http://github.com/brianmario/bzip2-ruby'
   s.rdoc_options = ["--charset=UTF-8"]
