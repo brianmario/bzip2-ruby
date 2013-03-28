@@ -11,7 +11,7 @@ if have_library("bz2", "BZ2_bzWriteOpen")
      $static = nil
   end
 
-  if RUBY_VERSION =~ /1.9/
+  if RUBY_VERSION.to_f >= 1.9
     $CFLAGS << ' -DRUBY_19_COMPATIBILITY'
   end
   
