@@ -6,7 +6,7 @@
 
 #ifndef RUBY_19_COMPATIBILITY
 #  include <rubyio.h>
-#  include <version.h>
+//#  include <version.h>
 #else
 #  include <ruby/io.h>
 #endif
