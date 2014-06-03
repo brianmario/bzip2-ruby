@@ -163,7 +163,12 @@ VALUE bz_writer_close(VALUE obj) {
     res = bz_writer_internal_close(bzf);
 #ifndef RUBINIUS
     if (!NIL_P(res) && (bzf->flags & BZ2_RB_INTERNAL)) {
+#ifdef RBASIC_CLASS
+        RBASIC_SET_CLASS(res, rb_cString);
+#endif
+#ifndef RBASIC_CLASS
         RBASIC(res)->klass = rb_cString;
+#endif
     }
 #endif
     return res;
