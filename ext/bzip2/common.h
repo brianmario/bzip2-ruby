@@ -18,20 +18,6 @@
 #define DEFAULT_BLOCKS 9
 #define ASIZE (1 << CHAR_BIT)
 
-/* Older versions of Ruby (< 1.8.6) need these */
-#ifndef RSTRING_PTR
-#  define RSTRING_PTR(s) (RSTRING(s)->ptr)
-#endif
-#ifndef RSTRING_LEN
-#  define RSTRING_LEN(s) (RSTRING(s)->len)
-#endif
-#ifndef RARRAY_PTR
-#  define RARRAY_PTR(s) (RARRAY(s)->ptr)
-#endif
-#ifndef RARRAY_LEN
-#  define RARRAY_LEN(s) (RARRAY(s)->len)
-#endif
-
 struct bz_file {
     bz_stream bzs;
     VALUE in, io;
