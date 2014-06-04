@@ -334,8 +334,6 @@ VALUE bz_reader_read(int argc, VALUE *argv, VALUE obj) {
             return res;
         }
     }
-    xfree(bzf->buf);
-    bzf->buf = NULL;
     return Qnil;
 }
 
