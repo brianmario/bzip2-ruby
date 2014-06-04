@@ -327,16 +327,12 @@ VALUE bz_reader_read(int argc, VALUE *argv, VALUE obj) {
             res = rb_str_cat(res, bzf->bzs.next_out, n);
             bzf->bzs.next_out += n;
             bzf->bzs.avail_out -= n;
-            xfree(bzf->buf);
-            bzf->buf = NULL;
             return res;
         }
         if (total) {
             res = rb_str_cat(res, bzf->bzs.next_out, total);
         }
         if (bz_next_available(bzf, 0) == BZ_STREAM_END) {
-            xfree(bzf->buf);
-            bzf->buf = NULL;
             return res;
         }
     }
