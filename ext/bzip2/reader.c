@@ -316,8 +316,6 @@ VALUE bz_reader_read(int argc, VALUE *argv, VALUE obj) {
         OBJ_TAINT(res);
     }
     if (n == 0) {
-        xfree(bzf->buf);
-        bzf->buf = NULL;
         return res;
     }
     while (1) {
@@ -336,6 +334,8 @@ VALUE bz_reader_read(int argc, VALUE *argv, VALUE obj) {
             return res;
         }
     }
+    xfree(bzf->buf);
+    bzf->buf = NULL;
     return Qnil;
 }
 
