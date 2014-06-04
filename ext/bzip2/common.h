@@ -55,6 +55,6 @@ extern ID id_closed, id_close, id_str;
 void bz_file_mark(struct bz_file * bzf);
 void* bz_malloc(void *opaque, int m, int n);
 void bz_free(void *opaque, void *p);
-VALUE bz_raise(int err);
+void bz_raise(int err);
 
 #endif
