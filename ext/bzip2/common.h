@@ -44,7 +44,6 @@ struct bz_iv {
         rb_raise(rb_eIOError, "closed IO");     \
     }
 
-#ifndef ASDFasdf
 extern VALUE bz_cWriter, bz_cReader, bz_cInternal;
 extern VALUE bz_eError, bz_eEOZError;
 
@@ -52,7 +51,6 @@ extern VALUE bz_internal_ary;
 
 extern ID id_new, id_write, id_open, id_flush, id_read;
 extern ID id_closed, id_close, id_str;
-#endif
 
 void bz_file_mark(struct bz_file * bzf);
 void* bz_malloc(void *opaque, int m, int n);
