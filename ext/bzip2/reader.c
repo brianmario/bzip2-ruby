@@ -316,7 +316,6 @@ VALUE bz_reader_read(int argc, VALUE *argv, VALUE obj) {
         OBJ_TAINT(res);
     }
     if (n == 0) {
-        free(bzf->buf);
         return res;
     }
     while (1) {
@@ -326,14 +325,12 @@ VALUE bz_reader_read(int argc, VALUE *argv, VALUE obj) {
             res = rb_str_cat(res, bzf->bzs.next_out, n);
             bzf->bzs.next_out += n;
             bzf->bzs.avail_out -= n;
-            free(bzf->buf);
             return res;
         }
         if (total) {
             res = rb_str_cat(res, bzf->bzs.next_out, total);
         }
         if (bz_next_available(bzf, 0) == BZ_STREAM_END) {
-            free(bzf->buf);
             return res;
         }
     }
@@ -802,8 +799,8 @@ VALUE bz_reader_close(VALUE obj) {
 
     Get_BZ2(obj, bzf);
     if (bzf->buf) {
-        free(bzf->buf);
-        bzf->buf = 0;
+        xfree(bzf->buf);
+        bzf->buf = NULL;
     }
     if (bzf->state == BZ_OK) {
         BZ2_bzDecompressEnd(&(bzf->bzs));
@@ -837,9 +834,9 @@ VALUE bz_reader_finish(VALUE obj) {
     Get_BZ2(obj, bzf);
     if (bzf->buf) {
         rb_funcall2(obj, id_read, 0, 0);
-        free(bzf->buf);
+        xfree(bzf->buf);
+        bzf->buf = NULL;
     }
-    bzf->buf = 0;
     bzf->state = BZ_OK;
     return Qnil;
 }

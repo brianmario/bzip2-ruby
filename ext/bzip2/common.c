@@ -16,7 +16,7 @@ void bz_free(void *opaque, void *p) {
     free(p);
 }
 
-VALUE bz_raise(int error) {
+void bz_raise(int error) {
     VALUE exc;
     const char *msg;
 

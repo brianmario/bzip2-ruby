@@ -16,6 +16,7 @@ Gem::Specification.new do |s|
   s.test_files = `git ls-files spec`.split("\n")
 
   # tests
-  s.add_development_dependency 'rake-compiler', ">= 0.7.5"
-  s.add_development_dependency 'rspec', ">= 2.0.0"
+  s.add_development_dependency 'rake-compiler', '~> 0.8.0'
+  s.add_development_dependency 'rake', '~> 0.9.3'
+  s.add_development_dependency 'rspec', '~> 2.8.0'
 end

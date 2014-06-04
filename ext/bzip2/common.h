@@ -18,20 +18,6 @@
 #define DEFAULT_BLOCKS 9
 #define ASIZE (1 << CHAR_BIT)
 
-/* Older versions of Ruby (< 1.8.6) need these */
-#ifndef RSTRING_PTR
-#  define RSTRING_PTR(s) (RSTRING(s)->ptr)
-#endif
-#ifndef RSTRING_LEN
-#  define RSTRING_LEN(s) (RSTRING(s)->len)
-#endif
-#ifndef RARRAY_PTR
-#  define RARRAY_PTR(s) (RARRAY(s)->ptr)
-#endif
-#ifndef RARRAY_LEN
-#  define RARRAY_LEN(s) (RARRAY(s)->len)
-#endif
-
 struct bz_file {
     bz_stream bzs;
     VALUE in, io;
@@ -58,7 +44,6 @@ struct bz_iv {
         rb_raise(rb_eIOError, "closed IO");     \
     }
 
-#ifndef ASDFasdf
 extern VALUE bz_cWriter, bz_cReader, bz_cInternal;
 extern VALUE bz_eError, bz_eEOZError;
 
@@ -66,11 +51,10 @@ extern VALUE bz_internal_ary;
 
 extern ID id_new, id_write, id_open, id_flush, id_read;
 extern ID id_closed, id_close, id_str;
-#endif
 
 void bz_file_mark(struct bz_file * bzf);
 void* bz_malloc(void *opaque, int m, int n);
 void bz_free(void *opaque, void *p);
-VALUE bz_raise(int err);
+void bz_raise(int err);
 
 #endif
